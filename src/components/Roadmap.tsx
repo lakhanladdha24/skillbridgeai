@@ -46,11 +46,24 @@ const Roadmap: React.FC<RoadmapProps> = ({ careerPath }) => {
                                     <div>
                                         <h3 className="text-xl font-bold text-white mb-2">{milestone.title}</h3>
                                         <p className="text-gray-400 mb-4">{milestone.description}</p>
-                                        <div className="flex flex-wrap gap-2">
+                                        {milestone.notes && (
+                                            <div className="mt-4 p-3 bg-white/5 rounded-lg border border-white/5">
+                                                <p className="text-xs font-bold text-secondary uppercase mb-1">Step-by-Step Notes</p>
+                                                <p className="text-sm text-gray-300">{milestone.notes}</p>
+                                            </div>
+                                        )}
+                                        <div className="flex flex-wrap gap-2 mt-4">
                                             {milestone.resources.map((res, i) => (
-                                                <span key={i} className="text-xs px-2 py-1 bg-white/5 rounded text-gray-300 border border-white/10 hover:border-primary/50 transition-colors">
-                                                    {res}
-                                                </span>
+                                                <a 
+                                                    key={i} 
+                                                    href={res.url} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="text-xs px-2 py-1 bg-primary/10 rounded text-primary border border-primary/20 hover:bg-primary/20 transition-all flex items-center gap-1"
+                                                >
+                                                    {res.name}
+                                                    <span className="text-[10px] opacity-70">({res.source})</span>
+                                                </a>
                                             ))}
                                         </div>
                                     </div>
@@ -68,8 +81,18 @@ const Roadmap: React.FC<RoadmapProps> = ({ careerPath }) => {
                         transition={{ delay: careerPath.milestones.length * 0.2 + 0.2 }}
                         className="pl-16 pt-4"
                     >
-                        <button className="flex items-center gap-2 text-primary hover:text-white transition-colors">
-                            <span>Complete Map</span>
+                        <button 
+                            onClick={() => {
+                                const event = new CustomEvent('openChat', { 
+                                    detail: { 
+                                        message: `I have started the ${careerPath.title} roadmap. Can you give me more specific details and additional resources from CampusX or Stanford for the first few steps?` 
+                                    } 
+                                });
+                                window.dispatchEvent(event);
+                            }}
+                            className="flex items-center gap-2 text-primary hover:text-white transition-colors py-2 px-4 rounded-lg bg-primary/5 border border-primary/10 hover:border-primary/50"
+                        >
+                            <span>Generate Advanced Roadmap with AI</span>
                             <ArrowRight size={20} />
                         </button>
                     </motion.div>

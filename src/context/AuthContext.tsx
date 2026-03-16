@@ -1,12 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db, UserProfile } from '../lib/database';
 
 // Define the User type
-export interface User {
-    id: string;
-    email: string;
-    name: string;
-    photoURL?: string;
-}
+export interface User extends UserProfile {}
 
 // Define the context state
 interface AuthContextType {
@@ -15,6 +11,7 @@ interface AuthContextType {
     signInWithEmail: (email: string, password?: string) => Promise<void>;
     signOut: () => Promise<void>;
     isLoading: boolean;
+    updateProfile: (updates: Partial<UserProfile>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,12 +22,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // On mount, check if there's a saved user in localStorage to "remember" them
     useEffect(() => {
-        const savedUser = localStorage.getItem('skillbridge_user');
-        if (savedUser) {
-            try {
-                setUser(JSON.parse(savedUser));
-            } catch (error) {
-                console.error("Failed to parse saved user", error);
+        const savedUserId = localStorage.getItem('skillbridge_user_id');
+        if (savedUserId) {
+            const profile = db.getUser(savedUserId);
+            if (profile) {
+                setUser(profile);
             }
         }
         setIsLoading(false);
@@ -41,51 +37,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Simulate an API call delay
         await new Promise(resolve => setTimeout(resolve, 800));
 
-        // Mock Google user data
-        const mockGoogleUser: User = {
-            id: 'g_' + Math.random().toString(36).substr(2, 9),
-            email: 'user@gmail.com',
-            name: 'Google User',
-            photoURL: 'https://ui-avatars.com/api/?name=Google+User&background=4F46E5&color=fff'
-        };
+        const userId = 'g_default_user'; // For demo, use a fixed ID or generate one
+        let profile = db.getUser(userId);
+        
+        if (!profile) {
+            profile = {
+                id: userId,
+                email: 'user@gmail.com',
+                name: 'Google User',
+                level: 5,
+                skills: ['1', '2'],
+                completedMilestones: [],
+                progress: { '1': 85, '2': 70 }
+            };
+            db.saveUser(profile);
+        }
 
-        setUser(mockGoogleUser);
-        localStorage.setItem('skillbridge_user', JSON.stringify(mockGoogleUser));
+        setUser(profile);
+        localStorage.setItem('skillbridge_user_id', profile.id);
         setIsLoading(false);
     };
 
     const signInWithEmail = async (email: string) => {
         setIsLoading(true);
-        // Simulate an API call delay
         await new Promise(resolve => setTimeout(resolve, 800));
 
-        // Mock Email user data
         const namePart = email.split('@')[0];
         const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+        const userId = 'e_' + namePart;
 
-        const mockEmailUser: User = {
-            id: 'e_' + Math.random().toString(36).substr(2, 9),
-            email: email,
-            name: formattedName,
-            photoURL: `https://ui-avatars.com/api/?name=${formattedName}&background=4F46E5&color=fff`
-        };
+        let profile = db.getUser(userId);
 
-        setUser(mockEmailUser);
-        localStorage.setItem('skillbridge_user', JSON.stringify(mockEmailUser));
+        if (!profile) {
+            profile = {
+                id: userId,
+                email: email,
+                name: formattedName,
+                level: 1,
+                skills: [],
+                completedMilestones: [],
+                progress: {}
+            };
+            db.saveUser(profile);
+        }
+
+        setUser(profile);
+        localStorage.setItem('skillbridge_user_id', profile.id);
         setIsLoading(false);
     };
 
     const signOut = async () => {
         setIsLoading(true);
-        // Simulate delay
         await new Promise(resolve => setTimeout(resolve, 400));
         setUser(null);
-        localStorage.removeItem('skillbridge_user');
+        localStorage.removeItem('skillbridge_user_id');
         setIsLoading(false);
     };
 
+    const updateProfile = (updates: Partial<UserProfile>) => {
+        if (user) {
+            const newProfile = { ...user, ...updates };
+            setUser(newProfile);
+            db.updateUser(user.id, updates);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, signInWithGoogle, signInWithEmail, signOut, isLoading }}>
+        <AuthContext.Provider value={{ user, signInWithGoogle, signInWithEmail, signOut, isLoading, updateProfile }}>
             {children}
         </AuthContext.Provider>
     );

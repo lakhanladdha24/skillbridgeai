@@ -19,14 +19,14 @@ const CareerPath: React.FC = () => {
         // Simulate AI processing
         setTimeout(() => {
             const lowerInput = input.toLowerCase();
-            let path: keyof typeof careerPaths = 'frontend'; // Default fallabck
+            let path: keyof typeof careerPaths = 'ai_ds';
 
-            if (lowerInput.includes('back') || lowerInput.includes('server') || lowerInput.includes('db') || lowerInput.includes('data')) {
-                path = 'backend';
-            } else if (lowerInput.includes('ai') || lowerInput.includes('ml') || lowerInput.includes('robot') || lowerInput.includes('intelligen')) {
-                path = 'ai';
+            if (lowerInput.includes('ai') || lowerInput.includes('ml') || lowerInput.includes('data') || lowerInput.includes('robot')) {
+                path = 'ai_ds';
+            } else if (lowerInput.includes('web') || lowerInput.includes('frontend') || lowerInput.includes('backend') || lowerInput.includes('app')) {
+                path = 'web_dev';
             } else {
-                path = 'frontend';
+                path = 'ai_ds'; // Default
             }
 
             setResult(path);

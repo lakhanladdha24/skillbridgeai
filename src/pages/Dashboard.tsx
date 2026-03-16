@@ -46,7 +46,7 @@ const Dashboard: React.FC = () => {
                 <div className="text-center md:text-left">
                     <h1 className="text-3xl font-bold mb-2">{user.name}</h1>
                     <p className="text-gray-400 mb-4">{user.email.split('@')[0]} • Level 5</p>
-                    <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+                    <div className="flex flex-wrap gap-3 justify-center md:justify-start mb-6">
                         <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10 text-sm">
                             <Clock size={14} className="text-primary" />
                             <span>240h Learned</span>
@@ -55,11 +55,22 @@ const Dashboard: React.FC = () => {
                             <Award size={14} className="text-secondary" />
                             <span>12 Certs</span>
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10 text-sm">
-                            <TrendingUp size={14} className="text-green-400" />
-                            <span>Top 5%</span>
-                        </div>
                     </div>
+                    
+                    <button 
+                        onClick={() => {
+                            const event = new CustomEvent('openChat', { 
+                                detail: { 
+                                    message: `Generate a complete, step-by-step career roadmap for me. I am a ${user.email.split('@')[0]} and I want to advance further in my career. Please include CampusX and Stanford University resources where applicable.` 
+                                } 
+                            });
+                            window.dispatchEvent(event);
+                        }}
+                        className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-xl shadow-lg hover:shadow-primary/20 transition-all flex items-center gap-2"
+                    >
+                        <Zap size={18} fill="currentColor" />
+                        Generate Detailed Roadmap
+                    </button>
                 </div>
             </div>
 

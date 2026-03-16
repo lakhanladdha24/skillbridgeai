@@ -3,7 +3,8 @@ export interface Milestone {
     title: string;
     description: string;
     duration: string;
-    resources: string[];
+    resources: { name: string; url: string; source: string }[];
+    notes?: string;
 }
 
 export interface CareerPath {
@@ -15,90 +16,68 @@ export interface CareerPath {
 }
 
 export const careerPaths: Record<string, CareerPath> = {
-    'frontend': {
-        id: 'cp_frontend',
-        title: 'Frontend Developer',
-        description: 'Build beautiful and interactive user interfaces for the web.',
+    'ai_ds': {
+        id: 'cp_ai_ds',
+        title: 'AI & Data Science Specialist',
+        description: 'Master the art of data analysis, model building, and deep learning.',
+        matchScore: 98,
+        milestones: [
+            {
+                id: 'ads_m1',
+                title: 'Data Science Foundations',
+                description: 'Python, Statistics, and Math basics for data science.',
+                duration: '4-6 weeks',
+                resources: [
+                    { name: '100 Days of Python', url: 'https://youtube.com/playlist?list=PLqnslRFeH2UoB7-U_k2x6E9eQvS3T8f6s', source: 'CampusX' },
+                    { name: 'CS109: Probability for CS', url: 'https://youtube.com/playlist?list=PLoROMvodv4rMiGQp3WXS7dW4OcsLOD665', source: 'Stanford Online' }
+                ],
+                notes: 'Focus on NumPy, Pandas, and Descriptive Statistics. Practice with real-world datasets from Kaggle.'
+            },
+            {
+                id: 'ads_m2',
+                title: 'Machine Learning Mastery',
+                description: 'Supervised, Unsupervised learning and Model Optimization.',
+                duration: '8-10 weeks',
+                resources: [
+                    { name: '100 Days of Machine Learning', url: 'https://youtube.com/playlist?list=PLqnslRFeH2Ur7nd8_Vp94-9mTo8e79Kk0', source: 'CampusX' },
+                    { name: 'CS229: Machine Learning', url: 'https://youtube.com/playlist?list=PLoROMvodv4rMiGQp3WXS7dW4OcsLOD665', source: 'Stanford University' }
+                ],
+                notes: 'Linear Regression, Decision Trees, and Gradient Descent are core. Stanford\'s CS229 provides the mathematical rigor.'
+            },
+            {
+                id: 'ads_m3',
+                title: 'Deep Learning & NLP',
+                description: 'Neural Networks, PyTorch, and Language Models.',
+                duration: '12 weeks',
+                resources: [
+                    { name: '100 Days of Deep Learning', url: 'https://youtube.com/playlist?list=PLqnslRFeH2Ur7nd8_Vp94-9mTo8e79Kk0', source: 'CampusX' },
+                    { name: 'CS230: Deep Learning', url: 'https://youtube.com/playlist?list=PLoROMvodv4rOABXSygHT8quzS94F_HdqC', source: 'Stanford Online' }
+                ],
+                notes: 'Master Backpropagation and then move to LSTM/Transformers for NLP.'
+            }
+        ]
+    },
+    'web_dev': {
+        id: 'cp_web_dev',
+        title: 'Full-Stack Web Architect',
+        description: 'Design and deploy scalable web applications from scratch.',
         matchScore: 92,
         milestones: [
             {
-                id: 'm1',
-                title: 'HTML & CSS Basics',
-                description: 'Master the building blocks of the web.',
-                duration: '2 weeks',
-                resources: ['MDN Web Docs', 'FreeCodeCamp']
-            },
-            {
-                id: 'm2',
-                title: 'JavaScript Fundamentals',
-                description: 'Learn logic, DOM manipulation, and ES6+ features.',
-                duration: '4 weeks',
-                resources: ['Javascript.info', 'Eloquent JavaScript']
-            },
-            {
-                id: 'm3',
-                title: 'React & Ecosystem',
-                description: 'Component-based architecture, hooks, and state management.',
+                id: 'wd_m1',
+                title: 'Frontend Mastery',
+                description: 'Advanced React, TypeScript, and UI Design.',
                 duration: '6 weeks',
-                resources: ['React Documentation', 'Epic React']
-            }
-        ]
-    },
-    'backend': {
-        id: 'cp_backend',
-        title: 'Backend Engineer',
-        description: 'Power the applications with robust server-side logic and databases.',
-        matchScore: 88,
-        milestones: [
-            {
-                id: 'm1',
-                title: 'Language Mastery (Node/Python)',
-                description: 'Deep dive into a server-side language.',
-                duration: '4 weeks',
-                resources: []
+                resources: [{ name: 'React Course', url: 'https://youtube.com/playlist?list=PL4cUxeGkcC9g7edgrlgjltviV36H8E_No', source: 'Net Ninja' }],
+                notes: 'Focus on State Management (Redux/Zustand) and Performance Optimization.'
             },
             {
-                id: 'm2',
-                title: 'API Design',
-                description: 'RESTful services, GraphQL, and authentication.',
-                duration: '3 weeks',
-                resources: []
-            },
-            {
-                id: 'm3',
-                title: 'Databases',
-                description: 'SQL vs NoSQL, schema design, and ORMs.',
-                duration: '5 weeks',
-                resources: []
-            }
-        ]
-    },
-    'ai': {
-        id: 'cp_ai',
-        title: 'AI Engineer',
-        description: 'Develop intelligent systems using machine learning and deep learning.',
-        matchScore: 95,
-        milestones: [
-            {
-                id: 'm1',
-                title: 'Mathematics for ML',
-                description: 'Linear algebra, calculus, and statistics.',
-                duration: '6 weeks',
-                resources: []
-            },
-            {
-                id: 'm2',
-                title: 'Python & Data Analysis',
-                description: 'NumPy, Pandas, and Matplotlib mastery.',
-                duration: '4 weeks',
-                resources: []
-            },
-            {
-                id: 'm3',
-                title: 'Deep Learning',
-                description: 'Neural networks, TensorFlow/PyTorch, and NLP.',
+                id: 'wd_m2',
+                title: 'Backend & Systems',
+                description: 'Node.js, System Design, and Scalability.',
                 duration: '8 weeks',
-                resources: []
+                resources: [{ name: 'CS110: Principles of Computer Systems', url: 'https://youtube.com/watch?v=kYVHoAn4eLw', source: 'Stanford University' }],
+                notes: 'Learn about Caching, Load Balancing, and Microservices architecture.'
             }
         ]
     }

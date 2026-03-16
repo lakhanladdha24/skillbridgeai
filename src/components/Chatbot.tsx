@@ -28,47 +28,52 @@ const Chatbot: React.FC = () => {
         scrollToBottom();
     }, [messages, isLoading]);
 
+    // Handle external chat triggers
+    useEffect(() => {
+        const handleOpenChat = (event: any) => {
+            setIsOpen(true);
+            if (event.detail?.message) {
+                const triggerMsg = event.detail.message;
+                setMessages(prev => {
+                    const newMessages = [...prev, { role: 'user' as const, content: triggerMsg }];
+                    processAIResponse(triggerMsg, prev); // Use prev as history
+                    return newMessages;
+                });
+            }
+        };
+
+        window.addEventListener('openChat', handleOpenChat);
+        return () => window.removeEventListener('openChat', handleOpenChat);
+    }, []); // Only once on mount
+
+    const processAIResponse = async (msg: string, currentHistory: Message[]) => {
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msg, history: currentHistory }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error);
+            setMessages((prev) => [...prev, { role: 'model', content: data.reply }]);
+        } catch (error) {
+            console.error('Chat error:', error);
+            setMessages((prev) => [...prev, { role: 'model', content: 'Sorry, I am facing an issue.' }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inputMessage.trim() || isLoading) return;
 
         const userMessage: Message = { role: 'user', content: inputMessage.trim() };
-        const newHistory = [...messages, userMessage];
-        setMessages(newHistory);
+        const historyCopy = [...messages];
+        setMessages(prev => [...prev, userMessage]);
         setInputMessage('');
-        setIsLoading(true);
-
-        try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: userMessage.content,
-                    history: messages,
-                }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to fetch response');
-            }
-
-            setMessages((prev) => [...prev, { role: 'model', content: data.reply }]);
-        } catch (error) {
-            console.error('Chat error:', error);
-            setMessages((prev) => [
-                ...prev,
-                {
-                    role: 'model',
-                    content: 'Sorry, I am facing an issue at the moment. Please try again later.',
-                },
-            ]);
-        } finally {
-            setIsLoading(false);
-        }
+        processAIResponse(userMessage.content, historyCopy);
     };
 
     return (
