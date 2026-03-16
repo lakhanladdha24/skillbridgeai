@@ -35,7 +35,7 @@ app.post('/api/chat', async (req, res) => {
         // We use systemInstruction if supported, to enforce the identity
         // `gemini-1.5-flash` is perfect for fast, structured responses
         const model = genAI.getGenerativeModel({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-1.5-flash',
             systemInstruction: SYSTEM_PROMPT,
             generationConfig: {
                 temperature: 0.4, // Low temperature for higher accuracy and structure, limits hallucination
