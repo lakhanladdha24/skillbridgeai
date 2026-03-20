@@ -76,7 +76,7 @@ app.post('/api/chat', async (req, res) => {
 
     if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
 
-    const modelCandidates = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'gemini-pro'];
+    const modelCandidates = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'models/gemini-1.5-flash', 'gemini-pro', 'models/gemini-pro'];
     let lastError = null;
 
     for (const modelName of modelCandidates) {
@@ -110,6 +110,14 @@ app.post('/api/chat', async (req, res) => {
         }
     }
     res.status(500).json({ error: `AI Failed: ${lastError?.message}` });
+});
+
+app.get('/api/debug-env', (req, res) => {
+    res.json({
+        has_gemini_key: !!process.env.GEMINI_API_KEY,
+        has_mongodb_uri: !!process.env.MONGODB_URI,
+        node_version: process.version
+    });
 });
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' }));

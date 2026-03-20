@@ -13,9 +13,9 @@ export default async function handler(req, res) {
     }
 
     const modelCandidates = [
-        'gemini-1.5-flash-latest', 
-        'gemini-1.5-flash', 
-        'models/gemini-1.5-flash', 
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-latest',
+        'models/gemini-1.5-flash',
         'models/gemini-1.5-flash-latest',
         'gemini-1.5-pro',
         'models/gemini-1.5-pro',
