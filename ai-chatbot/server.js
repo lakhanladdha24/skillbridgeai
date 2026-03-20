@@ -76,7 +76,14 @@ app.post('/api/chat', async (req, res) => {
 
     if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
 
-    const modelCandidates = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'models/gemini-1.5-flash', 'gemini-pro', 'models/gemini-pro'];
+    const modelCandidates = [
+        'models/gemini-2.0-flash-lite', 
+        'models/gemini-2.0-flash', 
+        'models/gemini-2.5-flash-lite', 
+        'models/gemini-2.5-flash',
+        'models/gemini-2.0-flash-001',
+        'models/gemini-2.5-pro'
+    ];
     let lastError = null;
 
     for (const modelName of modelCandidates) {
