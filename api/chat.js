@@ -9,44 +9,48 @@ export default async function handler(req, res) {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-        console.error('CRITICAL ERROR: GEMINI_API_KEY is not defined in Vercel Environment Variables.');
-        return res.status(500).json({ 
-            error: 'Backend Configuration Error: API Key missing in Vercel settings. Please go to Vercel > Settings > Environment Variables and add GEMINI_API_KEY.' 
-        });
+        return res.status(500).json({ error: 'API Key missing on Vercel Dashboard.' });
     }
 
-    try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-            model: 'gemini-1.5-flash',
-            generationConfig: {
-                temperature: 0.4,
+    // List of models to try in order of preference
+    const modelCandidates = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+    let lastError = null;
+
+    for (const modelName of modelCandidates) {
+        try {
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({
+                model: modelName,
+                generationConfig: { temperature: 0.4 }
+            });
+
+            let formattedHistory = (history || [])
+                .filter(msg => msg.content && msg.content.trim() !== '')
+                .map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.content }]
+                }));
+
+            if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
+                formattedHistory.shift();
             }
-        });
 
-        let formattedHistory = (history || [])
-            .filter(msg => msg.content && msg.content.trim() !== '') // Clean empty messages
-            .map(msg => ({
-                role: msg.role === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.content }]
-            }));
+            const chat = model.startChat({ history: formattedHistory });
+            const result = await chat.sendMessage(message);
+            const responseText = result.response.text();
 
-        // History fix for Gemini API
-        if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
-            formattedHistory.shift();
+            return res.status(200).json({ reply: responseText });
+        } catch (error) {
+            console.warn(`Model ${modelName} failed:`, error.message);
+            lastError = error;
+            // If it's a 429 (rate limit), don't keep trying others, just error out
+            if (error.message.includes('429')) break;
+            continue; // Try next model
         }
-
-        const chat = model.startChat({
-            history: formattedHistory,
-        });
-
-        const result = await chat.sendMessage(message);
-        const responseText = result.response.text();
-
-        return res.status(200).json({ reply: responseText });
-    } catch (error) {
-        console.error('Gemini API Error details:', error);
-        const errorMsg = error.message || 'Error occurred while contacting Google AI. Check your API key or usage limits.';
-        return res.status(500).json({ error: errorMsg });
     }
+
+    // If all models failed
+    return res.status(500).json({ 
+        error: `AI Error: All models failed. Last Error: ${lastError?.message || 'Unknown'}. Please check if your API key restricts access to specific models.` 
+    });
 }
