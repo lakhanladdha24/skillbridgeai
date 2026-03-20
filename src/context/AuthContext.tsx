@@ -1,17 +1,21 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { db, UserProfile } from '../lib/database';
+import { getBackendURL } from '../lib/api';
 
-// Define the User type
-export interface User extends UserProfile {}
+export interface User {
+    id: string;
+    email: string;
+    name: string;
+    skills?: { name: string; level: string }[];
+    photoURL?: string;
+}
 
-// Define the context state
 interface AuthContextType {
     user: User | null;
-    signInWithGoogle: () => Promise<void>;
     signInWithEmail: (email: string, password?: string) => Promise<void>;
+    signUp: (name: string, email: string, password?: string) => Promise<void>;
     signOut: () => Promise<void>;
     isLoading: boolean;
-    updateProfile: (updates: Partial<UserProfile>) => void;
+    updateSkills: (skills: { name: string; level: string }[]) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,90 +24,95 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // On mount, check if there's a saved user in localStorage to "remember" them
     useEffect(() => {
-        const savedUserId = localStorage.getItem('skillbridge_user_id');
-        if (savedUserId) {
-            const profile = db.getUser(savedUserId);
-            if (profile) {
-                setUser(profile);
-            }
+        const savedUser = localStorage.getItem('sb_user');
+        if (savedUser) {
+            setUser(JSON.parse(savedUser));
         }
         setIsLoading(false);
     }, []);
 
-    const signInWithGoogle = async () => {
-        setIsLoading(true);
-        // Simulate an API call delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        const userId = 'g_default_user'; // For demo, use a fixed ID or generate one
-        let profile = db.getUser(userId);
-        
-        if (!profile) {
-            profile = {
-                id: userId,
-                email: 'user@gmail.com',
-                name: 'Google User',
-                level: 5,
-                skills: ['1', '2'],
-                completedMilestones: [],
-                progress: { '1': 85, '2': 70 }
-            };
-            db.saveUser(profile);
-        }
-
-        setUser(profile);
-        localStorage.setItem('skillbridge_user_id', profile.id);
-        setIsLoading(false);
+    const getApiBase = () => {
+        const url = getBackendURL();
+        return url.replace('/api/chat', '/api');
     };
 
-    const signInWithEmail = async (email: string) => {
+    const signUp = async (name: string, email: string, password?: string) => {
         setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        const namePart = email.split('@')[0];
-        const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-        const userId = 'e_' + namePart;
-
-        let profile = db.getUser(userId);
-
-        if (!profile) {
-            profile = {
-                id: userId,
-                email: email,
-                name: formattedName,
-                level: 1,
-                skills: [],
-                completedMilestones: [],
-                progress: {}
-            };
-            db.saveUser(profile);
+        try {
+            const response = await fetch(`${getApiBase()}/auth/signup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password: password || 'default123' }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error);
+            
+            saveSession(data.user, data.token);
+        } catch (err: any) {
+            throw err;
+        } finally {
+            setIsLoading(false);
         }
+    };
 
+    const signInWithEmail = async (email: string, password?: string) => {
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${getApiBase()}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password: password || 'default123' }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error);
+            
+            saveSession(data.user, data.token);
+        } catch (err: any) {
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const updateSkills = async (skills: { name: string; level: string }[]) => {
+        if (!user) return;
+        try {
+            const response = await fetch(`${getApiBase()}/user/profile`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id, skills }),
+            });
+            if (!response.ok) throw new Error('Failed to update skills');
+            
+            const updatedUser = { ...user, skills };
+            setUser(updatedUser);
+            localStorage.setItem('sb_user', JSON.stringify(updatedUser));
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const saveSession = (userData: any, token: string) => {
+        const profile = {
+            id: userData.id,
+            name: userData.name,
+            email: userData.email,
+            skills: userData.skills || []
+        };
         setUser(profile);
-        localStorage.setItem('skillbridge_user_id', profile.id);
-        setIsLoading(false);
+        localStorage.setItem('sb_user', JSON.stringify(profile));
+        localStorage.setItem('sb_token', token);
     };
 
     const signOut = async () => {
-        setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 400));
         setUser(null);
-        localStorage.removeItem('skillbridge_user_id');
-        setIsLoading(false);
-    };
-
-    const updateProfile = (updates: Partial<UserProfile>) => {
-        if (user) {
-            const newProfile = { ...user, ...updates };
-            setUser(newProfile);
-            db.updateUser(user.id, updates);
-        }
+        localStorage.removeItem('sb_user');
+        localStorage.removeItem('sb_token');
     };
 
     return (
-        <AuthContext.Provider value={{ user, signInWithGoogle, signInWithEmail, signOut, isLoading, updateProfile }}>
+        <AuthContext.Provider value={{ user, signInWithEmail, signUp, signOut, isLoading, updateSkills }}>
             {children}
         </AuthContext.Provider>
     );
@@ -111,8 +120,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error("useAuth must be used within an AuthProvider");
-    }
+    if (context === undefined) throw new Error("useAuth must be used within an AuthProvider");
     return context;
 };

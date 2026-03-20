@@ -6,6 +6,7 @@ import CareerPath from './pages/CareerPath'
 import Dashboard from './pages/Dashboard'
 import SkillTest from './pages/SkillTest'
 import SignIn from './pages/SignIn'
+import Onboarding from './pages/Onboarding'
 import Navbar from './components/Navbar'
 import Chatbot from './components/Chatbot'
 import { AuthProvider } from './context/AuthContext'
@@ -31,6 +32,7 @@ const App: React.FC = () => {
                                 <Route path="/skill-test" element={<SkillTest />} />
                                 <Route path="/dashboard" element={<Dashboard />} />
                                 <Route path="/sign-in" element={<SignIn />} />
+                                <Route path="/onboarding" element={<Onboarding />} />
                             </Routes>
                         </main>
                         <Chatbot />

@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User as UserIcon, Award, TrendingUp, Clock, Zap, Sparkles } from 'lucide-react';
-import { skills } from '../data/skills';
+import { User as UserIcon, TrendingUp, Zap, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,12 +9,16 @@ const Dashboard: React.FC = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!isLoading && !user) {
-            navigate('/sign-in');
+        if (!isLoading) {
+            if (!user) {
+                navigate('/sign-in');
+            } else if (!user.skills || user.skills.length === 0) {
+                navigate('/onboarding');
+            }
         }
     }, [user, isLoading, navigate]);
 
-    if (isLoading) {
+    if (isLoading || !user) {
         return (
             <div className="min-h-[60vh] flex items-center justify-center">
                 <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -23,82 +26,69 @@ const Dashboard: React.FC = () => {
         );
     }
 
-    if (!user) return null;
+    // Default levels for visual representation
+    const levelProgress: { [key: string]: number } = {
+        'Beginner': 25,
+        'Intermediate': 60,
+        'Advanced': 95
+    };
 
     return (
         <div className="max-w-7xl mx-auto pt-20 px-4 md:px-8">
-
-            {/* Profile Header */}
             <div className="flex flex-col md:flex-row items-center gap-8 mb-12">
                 <div className="relative">
-                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-gray-800 to-black border-4 border-primary/30 flex items-center justify-center overflow-hidden">
-                        {user.photoURL ? (
-                            <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" />
-                        ) : (
-                            <UserIcon size={64} className="text-gray-600" />
-                        )}
-                    </div>
-                    <div className="absolute bottom-0 right-0 p-2 bg-primary rounded-full text-black border-4 border-black">
-                        <Zap size={16} fill="currentColor" />
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-gray-900 to-black border-4 border-primary/20 flex items-center justify-center overflow-hidden">
+                        {user.photoURL ? <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" /> : <UserIcon size={64} className="text-gray-700" />}
                     </div>
                 </div>
 
                 <div className="text-center md:text-left">
-                    <h1 className="text-3xl font-bold mb-2">{user.name}</h1>
-                    <p className="text-gray-400 mb-4">{user.email.split('@')[0]} • Level 5</p>
-                    <div className="flex flex-wrap gap-3 justify-center md:justify-start mb-6">
-                        <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10 text-sm">
-                            <Clock size={14} className="text-primary" />
-                            <span>240h Learned</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10 text-sm">
-                            <Award size={14} className="text-secondary" />
-                            <span>12 Certs</span>
-                        </div>
-                    </div>
+                    <h1 className="text-4xl font-bold mb-2 tracking-tight">Hi, {user.name.split(' ')[0]}! 👋</h1>
+                    <p className="text-gray-400 mb-6 font-medium">Tracking your AI-powered career growth</p>
                     
                     <button 
                         onClick={() => {
+                            const userDesc = user.skills?.map(s => `${s.name} (${s.level})`).join(', ');
                             const event = new CustomEvent('openChat', { 
                                 detail: { 
-                                    message: `Generate a complete, step-by-step career roadmap for me. I am a ${user.email.split('@')[0]} and I want to advance further in my career. Please include CampusX and Stanford University resources where applicable.` 
+                                    message: `I have skills in: ${userDesc}. Generate a complete, step-by-step career growth roadmap for me. Please include learning resources from CampusX and Stanford University.` 
                                 } 
-                            });
+                             });
                             window.dispatchEvent(event);
                         }}
-                        className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-xl shadow-lg hover:shadow-primary/20 transition-all flex items-center gap-2"
+                        className="px-8 py-3 bg-primary text-black font-bold rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all flex items-center gap-2"
                     >
                         <Zap size={18} fill="currentColor" />
-                        Generate Detailed Roadmap
+                        Generate Expert Roadmap
                     </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Current Progress */}
-                <div className="lg:col-span-2 space-y-8">
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 pb-20">
+                <div className="lg:col-span-2 space-y-6">
+                    <h2 className="text-2xl font-bold flex items-center gap-2 mb-6 text-white">
                         <TrendingUp className="text-primary" />
-                        Current Progress
+                        My Skill Matrix
                     </h2>
 
-                    <div className="space-y-4">
-                        {['React Mastery', 'Advanced Node.js', 'System Design'].map((item, i) => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {user.skills && user.skills.map((skill, i) => (
                             <motion.div
                                 key={i}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: i * 0.1 }}
-                                className="glass-card p-6 rounded-xl"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.05 }}
+                                className="glass-card p-6 rounded-2xl border border-white/5"
                             >
-                                <div className="flex justify-between mb-2">
-                                    <span className="font-semibold">{item}</span>
-                                    <span className="text-primary text-sm font-mono">{85 - i * 15}%</span>
+                                <div className="flex justify-between items-center mb-4">
+                                    <span className="font-bold text-white text-lg">{skill.name}</span>
+                                    <span className="text-primary text-xs font-mono font-bold tracking-widest">{skill.level}</span>
                                 </div>
-                                <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-primary to-secondary"
-                                        style={{ width: `${85 - i * 15}%` }}
+                                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${levelProgress[skill.level] || 0}%` }}
+                                        className="h-full bg-primary shadow-[0_0_10px_rgba(79,70,229,0.5)]"
                                     />
                                 </div>
                             </motion.div>
@@ -106,33 +96,24 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Recommended Skills */}
                 <div className="space-y-6">
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                    <h2 className="text-2xl font-bold flex items-center gap-2 mb-6 text-white">
                         <Sparkles className="text-secondary" />
-                        Recommended
+                        Nex Step
                     </h2>
-
-                    <div className="space-y-4">
-                        {skills.slice(0, 3).map((skill) => (
-                            <motion.div
-                                key={skill.id}
-                                whileHover={{ x: 5 }}
-                                className="glass-card p-4 rounded-xl flex items-center gap-4 cursor-pointer hover:border-sidebar/50"
-                            >
-                                <div className="p-2 bg-white/5 rounded-lg">
-                                    <Zap size={20} className="text-yellow-400" />
-                                </div>
-                                <div>
-                                    <h4 className="font-bold">{skill.name}</h4>
-                                    <p className="text-xs text-gray-500">{skill.category}</p>
-                                </div>
-                            </motion.div>
-                        ))}
+                    <div className="p-6 glass-card rounded-2xl border border-white/5 bg-gradient-to-br from-primary/5 to-transparent">
+                        <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                            Based on your profile, we recommend taking a **Skill Assessment** to verify your "Advanced" status.
+                        </p>
+                        <button 
+                            onClick={() => navigate('/skill-test')}
+                            className="w-full py-3 bg-white/10 text-white rounded-xl border border-white/10 hover:bg-white hover:text-black transition-all font-bold"
+                        >
+                            Take Assessment
+                        </button>
                     </div>
                 </div>
             </div>
-
         </div>
     );
 };
