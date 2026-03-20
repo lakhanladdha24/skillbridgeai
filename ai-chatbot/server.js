@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -8,9 +9,15 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// API Key verification
+if (!process.env.GEMINI_API_KEY) {
+    console.warn("⚠️ WARNING: GEMINI_API_KEY is not defined in the environment or .env file.");
+}
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy_key");
+
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 const SYSTEM_PROMPT = `You are SkillBridgeAI, a professional AI career mentor. 
 You provide structured, accurate, and practical answers.
