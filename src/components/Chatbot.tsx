@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Bot, Send, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
+import { fetchAIResponse } from '../lib/api';
 
 interface Message {
     role: 'user' | 'model';
@@ -49,17 +50,11 @@ const Chatbot: React.FC = () => {
     const processAIResponse = async (msg: string, currentHistory: Message[]) => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: msg, history: currentHistory }),
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error);
+            const data = await fetchAIResponse(msg, currentHistory);
             setMessages((prev) => [...prev, { role: 'model', content: data.reply }]);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Chat error:', error);
-            setMessages((prev) => [...prev, { role: 'model', content: 'Sorry, I am facing an issue.' }]);
+            setMessages((prev) => [...prev, { role: 'model', content: error.message || 'Sorry, I am facing an issue.' }]);
         } finally {
             setIsLoading(false);
         }

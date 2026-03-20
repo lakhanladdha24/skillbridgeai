@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { skillTestQuestions, Question } from '../data/skillTestQuestions';
 import { codingQuestions } from '../data/codingQuestions';
 import CodeEditor from '../components/CodeEditor';
+import { fetchAIResponse } from '../lib/api';
 import { motion } from 'framer-motion';
 import { Code2, ClipboardList, Send, RotateCcw, CheckCircle, XCircle, Sparkles } from 'lucide-react';
 
@@ -64,12 +65,7 @@ const SkillTest: React.FC = () => {
         `;
 
         try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: prompt, history: [] }),
-            });
-            const data = await response.json();
+            const data = await fetchAIResponse(prompt, []);
             
             // Try to extract JSON from AI response
             const text = data.reply;
@@ -83,8 +79,8 @@ const SkillTest: React.FC = () => {
             } else {
                 setCodingResult({ status: 'success', feedback: text });
             }
-        } catch (error) {
-            setCodingResult({ status: 'fail', feedback: 'Connection to AI Judge failed. Please try again.' });
+        } catch (error: any) {
+            setCodingResult({ status: 'fail', feedback: error.message || 'Connection to AI Judge failed. Please try again.' });
         }
     };
 
