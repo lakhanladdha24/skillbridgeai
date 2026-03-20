@@ -32,46 +32,49 @@ Special guidelines based on user topic:
 - If the question is about interview: Provide sample questions, Provide sample answers, Provide tips.`;
 
 app.post('/api/chat', async (req, res) => {
-    try {
-        const { message, history } = req.body;
-
-        if (!message) {
-            return res.status(400).json({ error: 'Message is required' });
-        }
-
-        // We use systemInstruction if supported, to enforce the identity
-        // `gemini-1.5-flash` is perfect for fast, structured responses
-        const model = genAI.getGenerativeModel({
-            model: 'gemini-1.5-flash',
-            systemInstruction: SYSTEM_PROMPT,
-            generationConfig: {
-                temperature: 0.4, // Low temperature for higher accuracy and structure, limits hallucination
-            }
-        });
-
-        // Convert the simple format to the one expected by the SDK
-        let formattedHistory = (history || []).map(msg => ({
-            role: msg.role === 'user' ? 'user' : 'model',
-            parts: [{ text: msg.content }]
-        }));
-
-        // Gemini API requires the history to start with a 'user' message
-        if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
-            formattedHistory.shift();
-        }
-
-        const chat = model.startChat({
-            history: formattedHistory,
-        });
-
-        const result = await chat.sendMessage(message);
-        const responseText = result.response.text();
-
-        res.json({ reply: responseText });
-    } catch (error) {
-        console.error('Error with Gemini API:', error);
-        res.status(500).json({ error: 'Sorry, I am facing an issue at the moment. Please try again later.' });
+    const { message, history } = req.body;
+    
+    if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'GEMINI_API_KEY not configured in .env' });
     }
+
+    const modelCandidates = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+    let lastError = null;
+
+    for (const modelName of modelCandidates) {
+        try {
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const model = genAI.getGenerativeModel({
+                model: modelName,
+                systemInstruction: SYSTEM_PROMPT,
+                generationConfig: { temperature: 0.4 }
+            });
+
+            let formattedHistory = (history || [])
+                .filter(msg => msg.content && msg.content.trim() !== '')
+                .map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.content }]
+                }));
+
+            if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
+                formattedHistory.shift();
+            }
+
+            const chat = model.startChat({ history: formattedHistory });
+            const result = await chat.sendMessage(message);
+            const responseText = result.response.text();
+
+            return res.status(200).json({ reply: responseText });
+        } catch (error) {
+            console.warn(`Model ${modelName} failed:`, error.message);
+            lastError = error;
+            if (error.message.includes('429')) break;
+            continue;
+        }
+    }
+
+    res.status(500).json({ error: `All models failed. Last Error: ${lastError?.message}` });
 });
 
 app.listen(PORT, () => {

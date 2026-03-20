@@ -12,8 +12,16 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'API Key missing on Vercel Dashboard.' });
     }
 
-    // List of models to try in order of preference
-    const modelCandidates = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+    const modelCandidates = [
+        'gemini-1.5-flash-latest', 
+        'gemini-1.5-flash', 
+        'models/gemini-1.5-flash', 
+        'models/gemini-1.5-flash-latest',
+        'gemini-1.5-pro',
+        'models/gemini-1.5-pro',
+        'gemini-pro',
+        'models/gemini-pro'
+    ];
     let lastError = null;
 
     for (const modelName of modelCandidates) {
