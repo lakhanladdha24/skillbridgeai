@@ -93,10 +93,10 @@ const Chatbot: React.FC = () => {
                         initial={{ opacity: 0, y: 50, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 50, scale: 0.9 }}
-                        className="fixed bottom-6 right-6 w-[380px] h-[600px] max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col z-50 border border-gray-100"
+                        className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 w-full sm:w-[380px] h-full sm:h-[600px] max-h-[100vh] sm:max-h-[85vh] bg-white sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col z-50 border border-gray-100"
                     >
                         {/* Header */}
-                        <div className="bg-primary p-4 text-white flex items-center justify-between shadow-md z-10">
+                        <div className="bg-primary p-4 text-white flex items-center justify-between shadow-md z-10 shrink-0">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                                     <Bot size={24} />

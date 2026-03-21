@@ -112,6 +112,24 @@ const Navbar: React.FC = () => {
                             </Link>
                         );
                     })}
+                    {user ? (
+                        <button
+                            onClick={() => { signOut(); setIsOpen(false); }}
+                            className="w-full flex items-center gap-3 py-2 text-base font-medium text-red-400"
+                        >
+                            <X className="w-5 h-5" />
+                            Sign Out
+                        </button>
+                    ) : (
+                        <Link
+                            to="/sign-in"
+                            onClick={() => setIsOpen(false)}
+                            className="flex items-center gap-3 py-2 text-base font-medium text-primary"
+                        >
+                            <BrainCircuit className="w-5 h-5" />
+                            Sign In
+                        </Link>
+                    )}
                 </div>
             </motion.div>
         </nav>
