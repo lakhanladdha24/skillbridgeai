@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 const connectDB = require('./db');
 const User = require('./models/User');
 
@@ -17,6 +17,11 @@ connectDB();
 
 app.use(cors());
 app.use(express.json());
+
+// Initialize Groq
+const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY || process.env.CHATBOT_API_KEY
+});
 
 // --- AUTHENTICATION ROUTES ---
 app.post('/api/auth/signup', async (req, res) => {
@@ -71,57 +76,49 @@ Always use markdown. Focus on professional growth.
 If you know the user's skills, tailor your advice to their level (Beginner/Intermediate/Advanced).`;
 
 app.post('/api/chat', async (req, res) => {
-    const { message, history } = req.body;
-    const apiKey = process.env.GEMINI_API_KEY;
+    try {
+        const { message, history } = req.body;
+        const apiKey = process.env.GROQ_API_KEY || process.env.CHATBOT_API_KEY;
 
-    if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
-
-    const modelCandidates = [
-        'models/gemini-2.0-flash-lite', 
-        'models/gemini-2.0-flash', 
-        'models/gemini-2.5-flash-lite', 
-        'models/gemini-2.5-flash',
-        'models/gemini-2.0-flash-001',
-        'models/gemini-2.5-pro'
-    ];
-    let lastError = null;
-
-    for (const modelName of modelCandidates) {
-        try {
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({
-                model: modelName,
-                systemInstruction: SYSTEM_PROMPT,
-                generationConfig: { temperature: 0.5 }
-            });
-
-            let formattedHistory = (history || [])
-                .filter(msg => msg.content && msg.content.trim() !== '')
-                .map(msg => ({
-                    role: msg.role === 'user' ? 'user' : 'model',
-                    parts: [{ text: msg.content }]
-                }));
-
-            if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') formattedHistory.shift();
-
-            const chat = model.startChat({ history: formattedHistory });
-            const result = await chat.sendMessage(message);
-            const responseText = result.response.text();
-
-            return res.status(200).json({ reply: responseText });
-        } catch (error) {
-            console.warn(`Model ${modelName} failed on Local/Render:`, error.message);
-            lastError = error;
-            if (error.message.includes('429')) break;
-            continue;
+        if (!apiKey) {
+            return res.status(500).json({ error: 'GROQ_API_KEY or CHATBOT_API_KEY not configured' });
         }
+
+        const messages = [
+            {
+                role: "system",
+                content: SYSTEM_PROMPT
+            },
+            ...(history || []).map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'assistant',
+                content: msg.content
+            })),
+            {
+                role: "user",
+                content: message
+            }
+        ];
+
+        const chatCompletion = await groq.chat.completions.create({
+            messages,
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.5,
+            max_tokens: 2048,
+            top_p: 1,
+            stream: false,
+        });
+
+        const reply = chatCompletion.choices[0]?.message?.content || "";
+        res.status(200).json({ reply });
+    } catch (error) {
+        console.error('Groq Chat Completion Error:', error.message);
+        res.status(500).json({ error: `AI Powered by Groq Failed: ${error.message}` });
     }
-    res.status(500).json({ error: `AI Failed: ${lastError?.message}` });
 });
 
 app.get('/api/debug-env', (req, res) => {
     res.json({
-        has_gemini_key: !!process.env.GEMINI_API_KEY,
+        has_groq_key: !!(process.env.GROQ_API_KEY || process.env.CHATBOT_API_KEY),
         has_mongodb_uri: !!process.env.MONGODB_URI,
         node_version: process.version
     });
