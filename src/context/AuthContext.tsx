@@ -23,20 +23,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const signUp = async (name: string, email: string, password?: string) => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${getApiBase()}/auth/signup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password: password || 'default123' }),
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Sign up failed');
-            
+            let data;
+            try {
+                const response = await fetch(`${getApiBase()}/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password: password || 'default123' }),
+                });
+                data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Sign up failed');
+                }
+            } catch (err: unknown) {
+                if (err instanceof Error && err.message !== 'Failed to fetch' && !err.message.includes('fetch')) {
+                    throw err;
+                }
+                data = {
+                    user: { id: 'local_' + Date.now(), name: name || email.split('@')[0], email, skills: [] },
+                    token: 'demo_token'
+                };
+            }
             saveSession(data.user, data.token);
-        } catch (err: unknown) {
-            console.warn('Backend signup error, enabling local session:', err);
-            // Fallback local session if backend server is offline
-            const fallbackUser = { id: 'local_' + Date.now(), name: name || email.split('@')[0], email, skills: [] };
-            saveSession(fallbackUser, 'demo_token');
         } finally {
             setIsLoading(false);
         }
@@ -45,20 +52,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const signInWithEmail = async (email: string, password?: string) => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${getApiBase()}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password: password || 'default123' }),
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Login failed');
-            
+            let data;
+            try {
+                const response = await fetch(`${getApiBase()}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password: password || 'default123' }),
+                });
+                data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Login failed');
+                }
+            } catch (err: unknown) {
+                if (err instanceof Error && err.message !== 'Failed to fetch' && !err.message.includes('fetch')) {
+                    throw err;
+                }
+                data = {
+                    user: { id: 'demo_' + Date.now(), name: email.split('@')[0], email, skills: [] },
+                    token: 'demo_token'
+                };
+            }
             saveSession(data.user, data.token);
-        } catch (err: unknown) {
-            console.warn('Backend login error, enabling local session:', err);
-            // Fallback local session if backend server is offline
-            const fallbackUser = { id: 'local_' + Date.now(), name: email.split('@')[0], email, skills: [] };
-            saveSession(fallbackUser, 'demo_token');
         } finally {
             setIsLoading(false);
         }

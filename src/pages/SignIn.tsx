@@ -116,14 +116,39 @@ const SignIn: React.FC = () => {
                         </button>
                     </form>
 
-                    <div className="mt-8 text-center text-sm text-gray-500">
-                        {isLogin ? "Don't have an account?" : "Already have an account?"}
-                        <button 
-                            onClick={() => setIsLogin(!isLogin)}
-                            className="text-primary font-bold ml-2 hover:underline"
+                    <div className="mt-6 space-y-3 text-center text-sm">
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                setEmail('demo@skillbridge.ai');
+                                setPassword('password123');
+                                setName('Demo Developer');
+                                try {
+                                    setIsSubmitting(true);
+                                    await signInWithEmail('demo@skillbridge.ai', 'password123');
+                                    navigate('/dashboard');
+                                } finally {
+                                    setIsSubmitting(false);
+                                }
+                            }}
+                            className="w-full py-2.5 px-4 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl border border-white/10 text-xs font-semibold transition-all"
                         >
-                            {isLogin ? 'Sign Up' : 'Log In'}
+                            ⚡ Quick Demo Access (1-Click Login)
                         </button>
+
+                        <div className="text-gray-500 pt-2">
+                            {isLogin ? "Don't have an account?" : "Already have an account?"}
+                            <button 
+                                type="button"
+                                onClick={() => {
+                                    setError('');
+                                    setIsLogin(!isLogin);
+                                }}
+                                className="text-primary font-bold ml-2 hover:underline"
+                            >
+                                {isLogin ? 'Sign Up' : 'Log In'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </motion.div>
