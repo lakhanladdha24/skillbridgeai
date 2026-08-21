@@ -1,5 +1,18 @@
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Groq from 'groq-sdk';
+
+// Load .env locally if present
+try {
+    const envPath = fs.existsSync(path.join(process.cwd(), 'backend/.env'))
+        ? path.join(process.cwd(), 'backend/.env')
+        : path.join(process.cwd(), '.env');
+    dotenv.config({ path: envPath });
+} catch {
+    // Ignore in production
+}
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
