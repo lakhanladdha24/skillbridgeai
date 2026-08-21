@@ -1,48 +1,48 @@
 # SkillBridgeAI 🚀
 
-SkillBridgeAI is a next-generation career growth platform that uses AI to bridge the gap between skills and careers. It features personalized roadmaps, skill tracking, and a built-in AI mentor powered by Google Gemini.
+SkillBridgeAI is a next-generation career growth platform that uses AI to bridge the gap between skills and careers. It features personalized roadmaps, skill tracking, and a built-in AI mentor powered by **Groq (Llama 3)** or **Google Gemini**.
 
 ## ✨ Features
 
 - **AI Career Mentor**: Chat with an AI trained to provide technical roadmaps, resume tips, and interview preparation.
-- **Dynamic Roadmaps**: Personalized learning paths with resources from **CampusX**, **Stanford University**, and more.
-- **Persistent Progress**: Local database system to save your skills, levels, and completed milestones.
-- **Responsive Dashboard**: Track your learning hours, certifications, and recommended skills.
+- **Dynamic Roadmaps**: Personalized learning paths with resources from world-class creators and universities.
+- **Persistent Progress**: MongoDB database system to save your skills, levels, and completed milestones.
+- **Hands-on Coding Assessment**: Real-time AI evaluation of your code directly in the browser.
+- **Responsive Dashboard**: Track your learning hours and certificates.
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS, Framer Motion
-- **Icons**: Lucide React
-- **AI Backend**: Vercel Serverless Functions + Google Generative AI (Gemini 1.5 Flash)
+- **Backend**: Node.js (Express) for local use, Vercel Serverless Functions for production.
+- **Database**: MongoDB (Atlas)
+- **AI Providers**: 
+  - **Groq**: Fastest inference using Llama 3 models (Primary local).
+  - **Google Gemini**: Robust backup/production model.
 
 ## 🚀 Deployment on Vercel
 
-1. **Push to GitHub**:
-   ```bash
-   git remote add origin <your-repository-url>
-   git branch -M main
-   git push -u origin main
-   ```
-
-2. **Connect to Vercel**:
-   - Go to [Vercel](https://vercel.com) and import your repository.
-   - **Important**: Add the following Environment Variable in Vercel Settings:
-     - `GEMINI_API_KEY`: Your Google Gemini API key.
-
-3. **Deploy**:
-   - Vercel will automatically detect the Vite project and the serverless functions in the `api/` folder.
+1. **Push to GitHub**.
+2. **Connect to Vercel**: Import your repository.
+3. **Environment Variables**: Add these in Vercel Settings:
+   - `GROQ_API_KEY`: (Recommended) Get from [Groq Console](https://console.groq.com).
+   - `GEMINI_API_KEY`: (Fallback) Get from [Google AI Studio](https://aistudio.google.com).
+   - `MONGODB_URI`: Your MongoDB connection string.
+   - `JWT_SECRET`: A secure string for auth.
 
 ## 💻 Local Development
 
-1. Install dependencies:
+1. **Install dependencies**:
    ```bash
    npm install
    ```
-2. Create a `.env` file and add your `GEMINI_API_KEY`.
-3. Run the development server:
+2. **Configure Environment**:
+   - Create a `.env` file in the root and in `backend/` directory.
+   - Add your API keys (GROQ or GEMINI) and MONGODB_URI.
+3. **Run the full app (Frontend + Backend)**:
    ```bash
-   npm run dev
+   npm run start
    ```
 
-## 📄 License
-MIT
+---
+*Developed with ❤️ for the future of skill building.*
+

@@ -46,9 +46,11 @@ const SkillTest: React.FC = () => {
     };
 
     const handleCodingSubmit = async () => {
+        const question = availableCodingQuestions[currentCodingIndex] || codingQuestions[0];
+        if (!question) return;
+
         setCodingResult({ status: 'testing', feedback: 'AI is analyzing your code and running test cases...' });
         
-        const question = availableCodingQuestions[currentCodingIndex];
         const prompt = `
             Task: Evaluate this coding solution.
             Problem: ${question.title} - ${question.description}
@@ -67,22 +69,30 @@ const SkillTest: React.FC = () => {
         try {
             const data = await fetchAIResponse(prompt, []);
             
-            // Try to extract JSON from AI response
             const text = data.reply;
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-                const parsed = JSON.parse(jsonMatch[0]);
-                setCodingResult({ 
-                    status: parsed.status === 'SUCCESS' ? 'success' : 'fail', 
-                    feedback: parsed.feedback + "\n\n**Alternative Approaches:**\n" + parsed.alternatives.map((a: string) => `• ${a}`).join('\n')
-                });
+                try {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    const alternativesText = Array.isArray(parsed.alternatives) 
+                        ? "\n\n**Alternative Approaches:**\n" + parsed.alternatives.map((a: string) => `• ${a}`).join('\n')
+                        : '';
+                    setCodingResult({ 
+                        status: String(parsed.status).toUpperCase() === 'SUCCESS' ? 'success' : 'fail', 
+                        feedback: (parsed.feedback || text) + alternativesText
+                    });
+                } catch {
+                    setCodingResult({ status: 'success', feedback: text });
+                }
             } else {
                 setCodingResult({ status: 'success', feedback: text });
             }
-        } catch (error: any) {
-            setCodingResult({ status: 'fail', feedback: error.message || 'Connection to AI Judge failed. Please try again.' });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Connection to AI Judge failed. Please try again.';
+            setCodingResult({ status: 'fail', feedback: errorMessage });
         }
     };
+
 
     const reset = () => {
         setMode('selection');
@@ -134,7 +144,7 @@ const SkillTest: React.FC = () => {
     }
 
     if (mode === 'coding') {
-        const question = availableCodingQuestions[currentCodingIndex];
+        const question = availableCodingQuestions[currentCodingIndex] || codingQuestions[0];
         
         if (!selectedSkill) {
             return (
@@ -146,7 +156,7 @@ const SkillTest: React.FC = () => {
                                 key={s} 
                                 onClick={() => {
                                     setSelectedSkill(s);
-                                    const q = codingQuestions.find(cq => cq.category.toLowerCase().includes(s.toLowerCase().split(' ')[0]));
+                                    const q = codingQuestions.find(cq => cq.category.toLowerCase().includes(s.toLowerCase().split(' ')[0])) || codingQuestions[0];
                                     setUserCode(q?.initialCode[selectedLanguage] || '');
                                 }}
                                 className="glass-card p-6 rounded-xl hover:bg-white/5 transition-all text-center font-bold border border-white/10"
@@ -171,7 +181,7 @@ const SkillTest: React.FC = () => {
                                 key={lang}
                                 onClick={() => {
                                     setSelectedLanguage(lang);
-                                    setUserCode(question.initialCode[lang] || '');
+                                    setUserCode(question?.initialCode[lang] || '');
                                 }}
                                 className={`px-4 py-1.5 rounded-lg text-sm font-bold uppercase transition-all ${selectedLanguage === lang ? 'bg-primary text-black' : 'bg-white/5 text-gray-400 border border-white/10'}`}
                             >

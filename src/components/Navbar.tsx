@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, BrainCircuit, LayoutDashboard, Map, Library } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 const Navbar: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -58,13 +58,13 @@ const Navbar: React.FC = () => {
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-3">
                                 {user.photoURL ? (
-                                    <img src={user.photoURL} alt={user.name} className="w-8 h-8 rounded-full border border-primary/30" />
+                                    <img src={user.photoURL} alt={user.name || 'User'} className="w-8 h-8 rounded-full border border-primary/30" />
                                 ) : (
                                     <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                                        {user.name.charAt(0)}
+                                        {(user.name || user.email || 'U').charAt(0).toUpperCase()}
                                     </div>
                                 )}
-                                <span className="text-sm font-medium text-white">{user.name}</span>
+                                <span className="text-sm font-medium text-white">{user.name || user.email || 'User'}</span>
                             </div>
                             <button
                                 onClick={signOut}

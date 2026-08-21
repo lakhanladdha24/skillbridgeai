@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, ArrowRight, BrainCircuit, Lock, User as UserIcon } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 const SignIn: React.FC = () => {
@@ -28,8 +28,9 @@ const SignIn: React.FC = () => {
                 await signUp(name, email, password);
                 navigate('/onboarding');
             }
-        } catch (err: any) {
-            setError(err.message || 'Authentication failed');
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
+            setError(errorMessage);
         } finally {
             setIsSubmitting(false);
         }

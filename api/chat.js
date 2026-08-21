@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -6,59 +7,77 @@ export default async function handler(req, res) {
     }
 
     const { message, history } = req.body;
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-        return res.status(500).json({ error: 'API Key missing on Vercel Dashboard.' });
+    if (!message) {
+        return res.status(400).json({ error: 'Message is required' });
     }
 
-    const modelCandidates = [
-        'models/gemini-2.0-flash-lite', 
-        'models/gemini-2.0-flash', 
-        'models/gemini-2.5-flash-lite', 
-        'models/gemini-2.5-flash',
-        'models/gemini-2.0-flash-001',
-        'models/gemini-2.5-pro'
-    ];
-
-
-    let lastError = null;
-
-    for (const modelName of modelCandidates) {
+    const cleanHistory = (history || []).filter(
+        msg => msg.content && !msg.content.startsWith('AI Error') && !msg.content.startsWith('Groq Error') && !msg.content.startsWith('Sorry,')
+    );
+    
+    // Priority 1: Groq (More reliable in recent history)
+    const groqKey = process.env.GROQ_API_KEY || process.env.CHATBOT_API_KEY;
+    if (groqKey) {
         try {
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({
-                model: modelName,
-                generationConfig: { temperature: 0.4 }
+            const groq = new Groq({ apiKey: groqKey });
+            const completion = await groq.chat.completions.create({
+                messages: [
+                    { role: "system", content: "You are SkillBridgeAI, a premium AI career mentor. Always use markdown. Focus on professional growth." },
+                    ...cleanHistory.map(msg => ({
+                        role: msg.role === 'user' ? 'user' : 'assistant',
+                        content: msg.content
+                    })),
+                    { role: "user", content: message }
+                ],
+                model: "llama-3.3-70b-versatile",
+                temperature: 0.5,
             });
-
-            let formattedHistory = (history || [])
-                .filter(msg => msg.content && msg.content.trim() !== '')
-                .map(msg => ({
-                    role: msg.role === 'user' ? 'user' : 'model',
-                    parts: [{ text: msg.content }]
-                }));
-
-            if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
-                formattedHistory.shift();
-            }
-
-            const chat = model.startChat({ history: formattedHistory });
-            const result = await chat.sendMessage(message);
-            const responseText = result.response.text();
-
-            return res.status(200).json({ reply: responseText });
+            return res.status(200).json({ reply: completion.choices[0]?.message?.content || "" });
         } catch (error) {
-            console.warn(`Model ${modelName} failed:`, error.message);
-            lastError = error;
-            // If it's a 429 (rate limit), don't keep trying others, just error out
-            if (error.message.includes('429')) break;
-            continue; // Try next model
+            console.error('Groq Error:', error.message);
+            // Fall through to Gemini if Groq fails
         }
     }
 
-    // If all models failed
-    return res.status(500).json({ 
-        error: `AI Error: All models failed. Last Error: ${lastError?.message || 'Unknown'}. Please check if your API key restricts access to specific models.` 
+    // Priority 2: Gemini
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (geminiKey) {
+        const modelCandidates = [
+            'gemini-1.5-flash',
+            'gemini-2.0-flash-exp',
+            'gemini-pro'
+        ];
+
+        let lastError = null;
+        for (const modelName of modelCandidates) {
+            try {
+                const genAI = new GoogleGenerativeAI(geminiKey);
+                const model = genAI.getGenerativeModel({ model: modelName });
+                
+                const formattedHistory = cleanHistory
+                    .filter(msg => msg.content && msg.content.trim() !== '')
+                    .map(msg => ({
+                        role: msg.role === 'user' ? 'user' : 'model',
+                        parts: [{ text: msg.content }]
+                    }));
+
+                if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
+                    formattedHistory.shift();
+                }
+
+                const chat = model.startChat({ history: formattedHistory });
+                const result = await chat.sendMessage(message);
+                return res.status(200).json({ reply: result.response.text() });
+            } catch (error) {
+                lastError = error;
+                if (error.message.includes('429')) break;
+                continue;
+            }
+        }
+    }
+
+    return res.status(200).json({ 
+        reply: `**SkillBridgeAI Assistant (Offline Mode)**\n\nI received your query: "${message}".\n\nTo enable live AI responses, please ensure a valid \`GROQ_API_KEY\` or \`GEMINI_API_KEY\` is configured in environment variables.` 
     });
 }
+

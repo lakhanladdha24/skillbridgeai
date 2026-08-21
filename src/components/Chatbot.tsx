@@ -31,13 +31,22 @@ const Chatbot: React.FC = () => {
 
     // Handle external chat triggers
     useEffect(() => {
-        const handleOpenChat = (event: any) => {
+        const handleOpenChat = (event: Event) => {
+            const customEvent = event as CustomEvent;
             setIsOpen(true);
-            if (event.detail?.message) {
-                const triggerMsg = event.detail.message;
+            if (customEvent.detail?.message) {
+                const triggerMsg = customEvent.detail.message;
                 setMessages(prev => {
-                    const newMessages = [...prev, { role: 'user' as const, content: triggerMsg }];
-                    processAIResponse(triggerMsg, prev); // Use prev as history
+                    const cleanHistory = prev.filter(m => !m.content.startsWith('Sorry,') && !m.content.startsWith('AI Error'));
+                    const newMessages = [...cleanHistory, { role: 'user' as const, content: triggerMsg }];
+                    fetchAIResponse(triggerMsg, cleanHistory)
+                        .then(data => {
+                            setMessages(msgs => [...msgs, { role: 'model', content: data.reply }]);
+                        })
+                        .catch(err => {
+                            const errText = err instanceof Error ? err.message : 'Sorry, I am facing an issue right now.';
+                            setMessages(msgs => [...msgs, { role: 'model', content: errText }]);
+                        });
                     return newMessages;
                 });
             }
@@ -45,16 +54,18 @@ const Chatbot: React.FC = () => {
 
         window.addEventListener('openChat', handleOpenChat);
         return () => window.removeEventListener('openChat', handleOpenChat);
-    }, []); // Only once on mount
+    }, []);
 
     const processAIResponse = async (msg: string, currentHistory: Message[]) => {
         setIsLoading(true);
+        const cleanHistory = currentHistory.filter(m => !m.content.startsWith('Sorry,') && !m.content.startsWith('AI Error'));
         try {
-            const data = await fetchAIResponse(msg, currentHistory);
+            const data = await fetchAIResponse(msg, cleanHistory);
             setMessages((prev) => [...prev, { role: 'model', content: data.reply }]);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Chat error:', error);
-            setMessages((prev) => [...prev, { role: 'model', content: error.message || 'Sorry, I am facing an issue.' }]);
+            const errorMessage = error instanceof Error ? error.message : 'Sorry, I am facing an issue right now.';
+            setMessages((prev) => [...prev, { role: 'model', content: errorMessage }]);
         } finally {
             setIsLoading(false);
         }

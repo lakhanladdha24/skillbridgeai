@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User as UserIcon, TrendingUp, Zap, Sparkles } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
@@ -38,12 +38,12 @@ const Dashboard: React.FC = () => {
             <div className="flex flex-col md:flex-row items-center gap-8 mb-12">
                 <div className="relative">
                     <div className="w-32 h-32 rounded-full bg-gradient-to-br from-gray-900 to-black border-4 border-primary/20 flex items-center justify-center overflow-hidden">
-                        {user.photoURL ? <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" /> : <UserIcon size={64} className="text-gray-700" />}
+                        {user.photoURL ? <img src={user.photoURL} alt={user.name || 'User'} className="w-full h-full object-cover" /> : <UserIcon size={64} className="text-gray-700" />}
                     </div>
                 </div>
 
                 <div className="text-center md:text-left">
-                    <h1 className="text-4xl font-bold mb-2 tracking-tight">Hi, {user.name.split(' ')[0]}! 👋</h1>
+                    <h1 className="text-4xl font-bold mb-2 tracking-tight">Hi, {(user.name || user.email || 'Developer').split(' ')[0]}! 👋</h1>
                     <p className="text-gray-400 mb-6 font-medium">Tracking your AI-powered career growth</p>
                     
                     <button 

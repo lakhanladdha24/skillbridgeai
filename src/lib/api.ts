@@ -15,7 +15,7 @@ export const getBackendURL = () => {
     return '/api/chat';
 };
 
-export const fetchAIResponse = async (message: string, history: any[] = []) => {
+export const fetchAIResponse = async (message: string, history: { role: string; content: string }[] = []) => {
     const url = getBackendURL();
     
     const response = await fetch(url, {

@@ -1,9 +1,13 @@
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const fs = require('fs');
+const envPath = fs.existsSync(path.join(__dirname, '../../backend/.env')) 
+  ? path.join(__dirname, '../../backend/.env')
+  : path.join(__dirname, '../../.env');
+require('dotenv').config({ path: envPath });
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../../ai-chatbot/models/User');
+const User = require('../../backend/models/User');
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET || 'skillbridgeai_secret_123_abc';
