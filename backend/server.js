@@ -138,7 +138,48 @@ app.post('/api/chat', async (req, res) => {
         return res.status(400).json({ error: 'Message is required' });
     }
 
-    // Provider 1: Groq
+    // Provider 1: NVIDIA AI (NVIDIA NIM API)
+    const nvidiaKey = process.env.NVIDIA_API_KEY || (process.env.GROQ_API_KEY?.startsWith('nvapi-') ? process.env.GROQ_API_KEY : null) || (process.env.CHATBOT_API_KEY?.startsWith('nvapi-') ? process.env.CHATBOT_API_KEY : null);
+    if (nvidiaKey) {
+        const nvidiaModels = ['meta/llama-3.3-70b-instruct', 'nvidia/llama-3.1-nemotron-70b-instruct', 'meta/llama3-70b-instruct'];
+        const messages = [
+            { role: "system", content: SYSTEM_PROMPT },
+            ...(history || [])
+                .filter(msg => msg.content && !msg.content.startsWith('AI Error') && !msg.content.startsWith('Sorry,'))
+                .map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'assistant',
+                    content: msg.content
+                })),
+            { role: "user", content: message }
+        ];
+
+        for (const model of nvidiaModels) {
+            try {
+                const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${nvidiaKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model,
+                        messages,
+                        temperature: 0.5,
+                        max_tokens: 2048
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok && data.choices && data.choices[0]?.message?.content) {
+                    return res.status(200).json({ reply: data.choices[0].message.content });
+                }
+            } catch (error) {
+                console.error(`NVIDIA API [${model}] Error:`, error.message);
+            }
+        }
+    }
+
+    // Provider 2: Groq
     if (groq) {
         const groqModels = ['groq/compound', 'openai/gpt-oss-120b', 'groq/compound-mini', 'qwen/qwen3.6-27b', 'llama-3.3-70b-versatile'];
         const messages = [
@@ -168,12 +209,11 @@ app.post('/api/chat', async (req, res) => {
             } catch (error) {
                 console.error(`Groq Model [${modelName}] Error:`, error.message);
                 if (error.message.includes('429')) break;
-                // Try next model if 404 / model_not_found
             }
         }
     }
 
-    // Provider 2: Gemini
+    // Provider 3: Gemini
     if (genAI) {
         try {
             const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
@@ -188,7 +228,7 @@ app.post('/api/chat', async (req, res) => {
 
     // Fallback: Informative response if AI keys aren't operational
     return res.status(200).json({
-        reply: `**SkillBridgeAI Assistant (Offline Mode)**\n\nI received your query: "${message}".\n\nTo enable live AI responses, please ensure a valid \`GROQ_API_KEY\` or \`GEMINI_API_KEY\` is configured in your \`.env\` file.`
+        reply: `**SkillBridgeAI Assistant (Offline Mode)**\n\nI received your query: "${message}".\n\nTo enable live AI responses, please ensure a valid \`NVIDIA_API_KEY\`, \`GROQ_API_KEY\`, or \`GEMINI_API_KEY\` is configured in your \`.env\` file.`
     });
 });
 

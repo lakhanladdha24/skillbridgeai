@@ -15,9 +15,48 @@ export default async function handler(req, res) {
         msg => msg.content && !msg.content.startsWith('AI Error') && !msg.content.startsWith('Groq Error') && !msg.content.startsWith('Sorry,')
     );
     
-    // Priority 1: Groq
+    // Priority 1: NVIDIA AI (NVIDIA NIM API)
+    const nvidiaKey = process.env.NVIDIA_API_KEY || (process.env.GROQ_API_KEY?.startsWith('nvapi-') ? process.env.GROQ_API_KEY : null) || (process.env.CHATBOT_API_KEY?.startsWith('nvapi-') ? process.env.CHATBOT_API_KEY : null);
+    if (nvidiaKey) {
+        const nvidiaModels = ['meta/llama-3.3-70b-instruct', 'nvidia/llama-3.1-nemotron-70b-instruct', 'meta/llama3-70b-instruct'];
+        const messages = [
+            { role: "system", content: "You are SkillBridgeAI, a premium AI career mentor. Always use markdown. Focus on professional growth." },
+            ...cleanHistory.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'assistant',
+                content: msg.content
+            })),
+            { role: "user", content: message }
+        ];
+
+        for (const model of nvidiaModels) {
+            try {
+                const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${nvidiaKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model,
+                        messages,
+                        temperature: 0.5,
+                        max_tokens: 2048
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok && data.choices && data.choices[0]?.message?.content) {
+                    return res.status(200).json({ reply: data.choices[0].message.content });
+                }
+            } catch (error) {
+                console.error(`NVIDIA API [${model}] Error:`, error.message);
+            }
+        }
+    }
+
+    // Priority 2: Groq
     const groqKey = process.env.GROQ_API_KEY || process.env.CHATBOT_API_KEY;
-    if (groqKey) {
+    if (groqKey && !groqKey.startsWith('nvapi-')) {
         const groq = new Groq({ apiKey: groqKey });
         const groqModels = ['groq/compound', 'openai/gpt-oss-120b', 'groq/compound-mini', 'qwen/qwen3.6-27b', 'llama-3.3-70b-versatile'];
         const messages = [
