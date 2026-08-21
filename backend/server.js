@@ -140,32 +140,36 @@ app.post('/api/chat', async (req, res) => {
 
     // Provider 1: Groq
     if (groq) {
-        try {
-            const messages = [
-                { role: "system", content: SYSTEM_PROMPT },
-                ...(history || [])
-                    .filter(msg => msg.content && !msg.content.startsWith('AI Error') && !msg.content.startsWith('Groq Error') && !msg.content.startsWith('Sorry,'))
-                    .map(msg => ({
-                        role: msg.role === 'user' ? 'user' : 'assistant',
-                        content: msg.content
-                    })),
-                { role: "user", content: message }
-            ];
+        const groqModels = ['groq/compound', 'openai/gpt-oss-120b', 'groq/compound-mini', 'qwen/qwen3.6-27b', 'llama-3.3-70b-versatile'];
+        const messages = [
+            { role: "system", content: SYSTEM_PROMPT },
+            ...(history || [])
+                .filter(msg => msg.content && !msg.content.startsWith('AI Error') && !msg.content.startsWith('Groq Error') && !msg.content.startsWith('Sorry,'))
+                .map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'assistant',
+                    content: msg.content
+                })),
+            { role: "user", content: message }
+        ];
 
-            const chatCompletion = await groq.chat.completions.create({
-                messages,
-                model: "llama-3.3-70b-versatile",
-                temperature: 0.5,
-                max_tokens: 2048,
-                top_p: 1,
-                stream: false,
-            });
+        for (const modelName of groqModels) {
+            try {
+                const chatCompletion = await groq.chat.completions.create({
+                    messages,
+                    model: modelName,
+                    temperature: 0.5,
+                    max_tokens: 2048,
+                    top_p: 1,
+                    stream: false,
+                });
 
-            const reply = chatCompletion.choices[0]?.message?.content || "";
-            return res.status(200).json({ reply });
-        } catch (error) {
-            console.error('Groq Chat Completion Error:', error.message);
-            // Fallthrough to Gemini if Groq fails
+                const reply = chatCompletion.choices[0]?.message?.content || "";
+                return res.status(200).json({ reply });
+            } catch (error) {
+                console.error(`Groq Model [${modelName}] Error:`, error.message);
+                if (error.message.includes('429')) break;
+                // Try next model if 404 / model_not_found
+            }
         }
     }
 

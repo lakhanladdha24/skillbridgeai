@@ -1,6 +1,11 @@
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
-const Groq = require('groq-sdk');
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+import Groq from 'groq-sdk';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const apiKey = process.env.GROQ_API_KEY || process.env.CHATBOT_API_KEY;
 
@@ -12,19 +17,23 @@ if (!apiKey) {
 const groq = new Groq({ apiKey });
 
 async function testGroq() {
-    try {
-        console.log('Testing Groq with llama-3.3-70b-versatile...');
-        const chatCompletion = await groq.chat.completions.create({
-            messages: [
-                { role: 'user', content: 'Hello! Are you working with Groq?' }
-            ],
-            model: 'llama-3.3-70b-versatile',
-        });
+    const modelCandidates = ['groq/compound', 'openai/gpt-oss-120b', 'groq/compound-mini', 'qwen/qwen3.6-27b'];
+    for (const model of modelCandidates) {
+        try {
+            console.log(`Testing Groq with model: ${model}...`);
+            const chatCompletion = await groq.chat.completions.create({
+                messages: [
+                    { role: 'user', content: 'Hello! Are you working with Groq?' }
+                ],
+                model,
+            });
 
-        console.log('✅ Groq Response:');
-        console.log(chatCompletion.choices[0]?.message?.content);
-    } catch (error) {
-        console.error('❌ Groq Error:', error.message);
+            console.log(`✅ Groq Success with [${model}]:`);
+            console.log(chatCompletion.choices[0]?.message?.content);
+            return;
+        } catch (error) {
+            console.error(`❌ Model [${model}] Error:`, error.message);
+        }
     }
 }
 

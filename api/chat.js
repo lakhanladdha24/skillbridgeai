@@ -15,27 +15,32 @@ export default async function handler(req, res) {
         msg => msg.content && !msg.content.startsWith('AI Error') && !msg.content.startsWith('Groq Error') && !msg.content.startsWith('Sorry,')
     );
     
-    // Priority 1: Groq (More reliable in recent history)
+    // Priority 1: Groq
     const groqKey = process.env.GROQ_API_KEY || process.env.CHATBOT_API_KEY;
     if (groqKey) {
-        try {
-            const groq = new Groq({ apiKey: groqKey });
-            const completion = await groq.chat.completions.create({
-                messages: [
-                    { role: "system", content: "You are SkillBridgeAI, a premium AI career mentor. Always use markdown. Focus on professional growth." },
-                    ...cleanHistory.map(msg => ({
-                        role: msg.role === 'user' ? 'user' : 'assistant',
-                        content: msg.content
-                    })),
-                    { role: "user", content: message }
-                ],
-                model: "llama-3.3-70b-versatile",
-                temperature: 0.5,
-            });
-            return res.status(200).json({ reply: completion.choices[0]?.message?.content || "" });
-        } catch (error) {
-            console.error('Groq Error:', error.message);
-            // Fall through to Gemini if Groq fails
+        const groq = new Groq({ apiKey: groqKey });
+        const groqModels = ['groq/compound', 'openai/gpt-oss-120b', 'groq/compound-mini', 'qwen/qwen3.6-27b', 'llama-3.3-70b-versatile'];
+        const messages = [
+            { role: "system", content: "You are SkillBridgeAI, a premium AI career mentor. Always use markdown. Focus on professional growth." },
+            ...cleanHistory.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'assistant',
+                content: msg.content
+            })),
+            { role: "user", content: message }
+        ];
+
+        for (const modelName of groqModels) {
+            try {
+                const completion = await groq.chat.completions.create({
+                    messages,
+                    model: modelName,
+                    temperature: 0.5,
+                });
+                return res.status(200).json({ reply: completion.choices[0]?.message?.content || "" });
+            } catch (error) {
+                console.error(`Groq Model [${modelName}] Error:`, error.message);
+                if (error.message.includes('429')) break;
+            }
         }
     }
 
