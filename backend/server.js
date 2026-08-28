@@ -10,6 +10,12 @@ import Groq from 'groq-sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import connectDB from './db.js';
 import User from './models/User.js';
+import { logLearningEvent, getUserEvents } from './services/eventLogger.js';
+import { predictSkill, predictCareers, getLearningPlan } from './services/mlClient.js';
+import Roadmap from './models/Roadmap.js';
+import { analyzeAssessmentResult } from './services/assessmentEngine.js';
+import { executeCode } from './services/codeExecutor.js';
+import { getStudyMaterialForTopic, rankVideoResources } from './services/ragKnowledgeService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -246,6 +252,202 @@ app.get('/api/health', (req, res) => res.json({
     status: 'ok',
     db: mongoose.connection && mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
 }));
+
+// --- ASSESSMENT ANALYSIS API ---
+app.post('/api/assessment/submit', async (req, res) => {
+    try {
+        const { userId, answers, questions, timeSpentSeconds } = req.body;
+        const analysis = analyzeAssessmentResult(answers, questions, timeSpentSeconds);
+
+        const isDbConnected = mongoose.connection.readyState === 1;
+        if (isDbConnected && userId && !userId.startsWith('local_') && !userId.startsWith('demo_')) {
+            const doc = new Assessment({
+                userId,
+                ...analysis
+            });
+            await doc.save();
+
+            // Update user skills profile
+            const updatedSkills = analysis.skillProfiles.map(s => ({
+                name: s.skill,
+                level: s.level,
+                score: s.percentage
+            }));
+            await User.findByIdAndUpdate(userId, { technicalSkills: updatedSkills });
+        }
+
+        res.json({ success: true, analysis });
+    } catch (err) {
+        console.error('Assessment Submit Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- CODE EXECUTION API (RUN VS SUBMIT) ---
+app.post('/api/code/run', async (req, res) => {
+    try {
+        const { language, code, testCases, customInput } = req.body;
+        const result = await executeCode({ language, code, testCases: testCases || [], customInput: customInput ?? null });
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ status: 'Runtime Error', message: err.message, results: [] });
+    }
+});
+
+app.post('/api/code/submit', async (req, res) => {
+    try {
+        const { userId, problemId, language, code, testCases, hiddenTestCases } = req.body;
+        const allCases = [...(testCases || []), ...(hiddenTestCases || [])];
+        const result = await executeCode({ language, code, testCases: allCases, customInput: null });
+
+        const isDbConnected = mongoose.connection.readyState === 1;
+        if (result.status === 'Accepted' && isDbConnected && userId && !userId.startsWith('local_') && !userId.startsWith('demo_')) {
+            await User.findByIdAndUpdate(userId, {
+                $addToSet: { 'codingStats.solvedProblems': problemId, 'codingStats.languagesUsed': language },
+                $inc: { 'codingStats.currentStreak': 1 }
+            });
+        }
+
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ status: 'Runtime Error', message: err.message, results: [] });
+    }
+});
+
+// --- RAG KNOWLEDGE & STUDY MATERIAL API ---
+app.get('/api/study/topic', (req, res) => {
+    const { q } = req.query;
+    const material = getStudyMaterialForTopic(q || '');
+    res.json(material);
+});
+
+app.get('/api/videos/recommend', (req, res) => {
+    const { q } = req.query;
+    const videos = rankVideoResources(q || '');
+    res.json({ videos });
+});
+
+// --- ROADMAP AI GENERATOR API ---
+app.post('/api/roadmap/generate', async (req, res) => {
+    try {
+        const { goal, currentSkills, studyTimeDaily } = req.body;
+        
+        // AI Roadmap generation prompt or fallback template
+        const phases = [
+            {
+                phaseId: 'p1',
+                title: 'Phase 1 — Foundations & Core Concepts',
+                description: `Master fundamental building blocks for ${goal || 'your career goal'}.`,
+                topics: [
+                    {
+                        topicId: 't1',
+                        title: 'Python Fundamentals & OOP',
+                        description: 'Variables, loops, functions, OOP classes and memory management.',
+                        difficulty: 'Beginner',
+                        estimatedHours: 15,
+                        completed: false,
+                        prerequisites: []
+                    },
+                    {
+                        topicId: 't2',
+                        title: 'Data Structures & Algorithms (DSA)',
+                        description: 'Arrays, Hash Tables, Trees, Graphs, and Algorithmic complexity.',
+                        difficulty: 'Intermediate',
+                        estimatedHours: 25,
+                        completed: false,
+                        prerequisites: ['t1']
+                    }
+                ]
+            },
+            {
+                phaseId: 'p2',
+                title: 'Phase 2 — Core Specialization & ML Foundations',
+                description: 'Deep dive into specialized math, statistics, and machine learning pipelines.',
+                topics: [
+                    {
+                        topicId: 't3',
+                        title: 'Machine Learning & AI Foundations',
+                        description: 'Supervised vs Unsupervised learning, Scikit-Learn, and evaluation metrics.',
+                        difficulty: 'Intermediate',
+                        estimatedHours: 30,
+                        completed: false,
+                        prerequisites: ['t2']
+                    }
+                ]
+            },
+            {
+                phaseId: 'p3',
+                title: 'Phase 3 — Professional Projects & Interview Readiness',
+                description: 'Build real-world production projects and hone interview problem solving.',
+                topics: [
+                    {
+                        topicId: 't4',
+                        title: 'Generative AI & LLM Engineering',
+                        description: 'Transformers, RAG pipelines, Prompt Engineering, and model deployment.',
+                        difficulty: 'Advanced',
+                        estimatedHours: 40,
+                        completed: false,
+                        prerequisites: ['t3']
+                    }
+                ]
+            }
+        ];
+
+        res.json({
+            goal: goal || 'Machine Learning Engineer',
+            estimatedDuration: '4 to 6 months',
+            studyTimeDaily: studyTimeDaily || '2 hours/day',
+            completionPercentage: 0,
+            phases
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- V3 ML INTELLIGENCE & TELEMETRY ENDPOINTS ---
+app.post('/api/events/log', (req, res) => {
+    const { userId, eventType, eventData } = req.body;
+    const evt = logLearningEvent(userId, eventType, eventData);
+    res.json({ success: true, event: evt });
+});
+
+app.post('/api/ml/career-predict', async (req, res) => {
+    try {
+        const { userSkills } = req.body;
+        const result = await predictCareers(userSkills || {});
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/ml/intelligence-summary', async (req, res) => {
+    try {
+        const defaultSkills = { "Python": 85, "Machine Learning": 70, "DSA": 64, "Statistics": 48 };
+        const [careerData, planData] = await Promise.all([
+            predictCareers(defaultSkills),
+            getLearningPlan(defaultSkills, ["Statistics", "Deep Learning"])
+        ]);
+
+        res.json({
+            overallProficiency: 76.5,
+            careerPredictions: careerData.predictions || [],
+            dailyPlan: planData.plan || [],
+            knowledgeDecayAlerts: [
+                { skill: "SQL Joins & Indexing", decayPercent: 18, lastPracticedDaysAgo: 14, action: "Revision Recommended" },
+                { skill: "Computer Networks (OSI Layers)", decayPercent: 12, lastPracticedDaysAgo: 9, action: "Quick Quiz" }
+            ],
+            learningMetrics: {
+                totalEvents: 142,
+                streakDays: 5,
+                estimatedGrowth: "+14%"
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 app.listen(PORT, () => console.log(`🚀 SkillBridgeAI Backend running on port ${PORT}`));
 

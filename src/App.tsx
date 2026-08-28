@@ -2,7 +2,6 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
 import Skills from './pages/Skills'
-import CareerPath from './pages/CareerPath'
 import Dashboard from './pages/Dashboard'
 import SkillTest from './pages/SkillTest'
 import SignIn from './pages/SignIn'
@@ -10,6 +9,10 @@ import Onboarding from './pages/Onboarding'
 import Navbar from './components/Navbar'
 import Chatbot from './components/Chatbot'
 import { AuthProvider } from './context/AuthContext'
+
+import CodingPlatform from './pages/CodingPlatform'
+import LearningHub from './pages/LearningHub'
+import RoadmapView from './pages/RoadmapView'
 
 const App: React.FC = () => {
     return (
@@ -28,8 +31,10 @@ const App: React.FC = () => {
                             <Routes>
                                 <Route path="/" element={<Home />} />
                                 <Route path="/skills" element={<Skills />} />
-                                <Route path="/career-path" element={<CareerPath />} />
+                                <Route path="/career-path" element={<RoadmapView />} />
                                 <Route path="/skill-test" element={<SkillTest />} />
+                                <Route path="/coding-lab" element={<CodingPlatform />} />
+                                <Route path="/learning-hub" element={<LearningHub />} />
                                 <Route path="/dashboard" element={<Dashboard />} />
                                 <Route path="/sign-in" element={<SignIn />} />
                                 <Route path="/onboarding" element={<Onboarding />} />

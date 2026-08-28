@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, BrainCircuit, LayoutDashboard, Map, Library } from 'lucide-react';
+import { Menu, X, BrainCircuit, LayoutDashboard, Map, Code2, BookOpen, Award } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 
@@ -11,9 +11,10 @@ const Navbar: React.FC = () => {
 
     const navItems = [
         { name: 'Home', path: '/', icon: BrainCircuit },
-        { name: 'Skills', path: '/skills', icon: Library },
-        { name: 'Career Path', path: '/career-path', icon: Map },
-        { name: 'Skill Test', path: '/skill-test', icon: BrainCircuit }, // Added Skill Test link with BrainCircuit icon
+        { name: 'Assessment', path: '/skill-test', icon: Award },
+        { name: 'Coding Lab', path: '/coding-lab', icon: Code2 },
+        { name: 'Roadmaps', path: '/career-path', icon: Map },
+        { name: 'Learning Hub', path: '/learning-hub', icon: BookOpen },
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     ];
 
