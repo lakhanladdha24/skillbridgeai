@@ -315,16 +315,24 @@ app.post('/api/code/submit', async (req, res) => {
 });
 
 // --- RAG KNOWLEDGE & STUDY MATERIAL API ---
-app.get('/api/study/topic', (req, res) => {
-    const { q } = req.query;
-    const material = getStudyMaterialForTopic(q || '');
-    res.json(material);
+app.get('/api/study/topic', async (req, res) => {
+    try {
+        const { q } = req.query;
+        const material = await getStudyMaterialForTopic(q || '');
+        res.json(material);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.get('/api/videos/recommend', (req, res) => {
-    const { q } = req.query;
-    const videos = rankVideoResources(q || '');
-    res.json({ videos });
+app.get('/api/videos/recommend', async (req, res) => {
+    try {
+        const { q } = req.query;
+        const videos = await rankVideoResources(q || '');
+        res.json({ videos });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // --- ROADMAP AI GENERATOR API ---

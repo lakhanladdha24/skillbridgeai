@@ -22,10 +22,11 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
     onNavigateToCoding
 }) => {
     const [activeTab, setActiveTab] = useState<'video' | 'article' | 'pdf' | 'practice'>('video');
+    const [selectedVidIdx, setSelectedVidIdx] = useState<number>(0);
 
     if (!node) return null;
 
-    const currentVideo = studyData?.videos?.[0];
+    const currentVideo = studyData?.videos?.[selectedVidIdx] || studyData?.videos?.[0];
 
     return (
         <AnimatePresence>
@@ -135,10 +136,33 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                                         <div className="flex items-center gap-4 text-xs font-mono text-gray-500 mt-2">
                                                             <span>Creator: {currentVideo.creator}</span>
                                                             <span>Duration: {currentVideo.duration}</span>
-                                                            <span className="text-yellow-400 font-bold">Rating: ★ {currentVideo.score}</span>
+                                                            <span className="text-yellow-400 font-bold">Rating: {currentVideo.ratingText || `★ ${currentVideo.score}`}</span>
                                                         </div>
                                                     </div>
                                                 </div>
+
+                                                {/* Multiple Videos Selection Bar */}
+                                                {studyData?.videos?.length > 1 && (
+                                                    <div className="space-y-2 pt-2">
+                                                        <h5 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select Available Video Result:</h5>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                            {studyData.videos.map((v: any, i: number) => (
+                                                                <button
+                                                                    key={i}
+                                                                    onClick={() => setSelectedVidIdx(i)}
+                                                                    className={`p-3 rounded-xl border text-left transition-all font-sans text-xs ${
+                                                                        selectedVidIdx === i
+                                                                            ? 'bg-primary/20 border-primary text-white shadow-md'
+                                                                            : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                                                                    }`}
+                                                                >
+                                                                    <div className="font-bold line-clamp-1">{v.title}</div>
+                                                                    <div className="text-[10px] text-gray-400 font-mono mt-0.5">{v.creator} • {v.ratingText || `★ ${v.score}`}</div>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </>
                                         ) : (
                                             <div className="text-xs text-gray-400 p-8 text-center">No video available for this topic.</div>
