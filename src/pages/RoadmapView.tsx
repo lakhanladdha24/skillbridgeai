@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, Compass } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import VisualFlowchart from '../components/VisualFlowchart';
@@ -99,6 +99,10 @@ const RoadmapView: React.FC = () => {
     const [selectedTopic, setSelectedTopic] = useState<TopicNode | null>(null);
     const [topicStudyData, setTopicStudyData] = useState<any>(null);
     const [isLoadingStudy, setIsLoadingStudy] = useState<boolean>(false);
+
+    useEffect(() => {
+        handleSearchRoadmapQuery('Web Development & Full Stack');
+    }, []);
 
     const handleOpenTopic = async (topic: TopicNode) => {
         setSelectedTopic(topic);

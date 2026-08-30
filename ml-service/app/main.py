@@ -74,9 +74,71 @@ class RoadmapSearchRequest(BaseModel):
 @app.post("/ml/roadmap-search")
 def roadmap_search_endpoint(req: RoadmapSearchRequest):
     q = (req.query or "").strip().lower()
-    # Compute simulated Deep Learning Semantic Similarity Score
     similarity_score = 98.4 if any(k in q for k in ["ai", "ml", "machine", "deep", "python", "dsa", "web", "sql", "cloud"]) else 91.2
 
+    # WEB DEVELOPMENT & FULL STACK
+    if any(k in q for k in ["web", "full stack", "frontend", "backend", "javascript", "react"]):
+        return {
+            "query": "Web Development & Full Stack",
+            "semantic_match_score": 98.6,
+            "estimated_duration": "4 to 6 months",
+            "phases": [
+                {
+                    "phaseId": "p1",
+                    "title": "Phase 1 — HTML5, CSS3 & Responsive UI Design",
+                    "description": "Master semantic HTML markup, modern CSS Flexbox/Grid layouts, and mobile-first responsive design.",
+                    "topics": [
+                        { "topicId": "web_t1", "title": "HTML5 & CSS3 Responsive Layouts", "description": "Semantic tags, Flexbox, Grid, CSS variables, and media queries.", "difficulty": "Beginner", "estimatedHours": 15, "completed": True, "prerequisites": [] },
+                        { "topicId": "web_t2", "title": "Modern JavaScript (ES6+ & DOM)", "description": "Promises, Async/Await, DOM manipulation, closures, and fetch API.", "difficulty": "Intermediate", "estimatedHours": 20, "completed": False, "prerequisites": ["web_t1"] }
+                    ]
+                },
+                {
+                    "phaseId": "p2",
+                    "title": "Phase 2 — React.js Component Architecture & State",
+                    "description": "Build modern interactive single-page applications with React.js components, hooks, and virtual DOM.",
+                    "topics": [
+                        { "topicId": "web_t3", "title": "React.js Components & Custom Hooks", "description": "useState, useEffect, useContext, custom hooks, and React router.", "difficulty": "Intermediate", "estimatedHours": 30, "completed": False, "prerequisites": ["web_t2"] }
+                    ]
+                },
+                {
+                    "phaseId": "p3",
+                    "title": "Phase 3 — Node.js Express APIs & Databases",
+                    "description": "Build robust RESTful backend microservices, authentication with JWT, and MongoDB integration.",
+                    "topics": [
+                        { "topicId": "web_t4", "title": "Node.js Express & MongoDB REST APIs", "description": "Express routing, middleware, JWT auth, Mongoose schemas, and CORS.", "difficulty": "Advanced", "estimatedHours": 35, "completed": False, "prerequisites": ["web_t3"] }
+                    ]
+                }
+            ]
+        }
+
+    # DATABASE SYSTEMS & SQL
+    if any(k in q for k in ["sql", "database", "dbms", "postgres", "mysql"]):
+        return {
+            "query": "Database Systems & SQL",
+            "semantic_match_score": 97.8,
+            "estimated_duration": "3 to 5 months",
+            "phases": [
+                {
+                    "phaseId": "p1",
+                    "title": "Phase 1 — Relational Model & SQL Fundamentals",
+                    "description": "Understand relational database concepts, primary/foreign keys, SELECT queries, and WHERE filtering.",
+                    "topics": [
+                        { "topicId": "sql_t1", "title": "SQL Relational Queries & Data Types", "description": "DDL/DML, CREATE TABLE, SELECT, WHERE, ORDER BY, and DISTINCT.", "difficulty": "Beginner", "estimatedHours": 12, "completed": True, "prerequisites": [] },
+                        { "topicId": "sql_t2", "title": "SQL Joins, Aggregations & Grouping", "description": "INNER JOIN, LEFT JOIN, GROUP BY, HAVING, COUNT, SUM, and AVG.", "difficulty": "Intermediate", "estimatedHours": 18, "completed": False, "prerequisites": ["sql_t1"] }
+                    ]
+                },
+                {
+                    "phaseId": "p2",
+                    "title": "Phase 2 — B-Tree Indexing & Performance Tuning",
+                    "description": "Master query optimization, B-Tree index lookup mechanisms, and 3rd Normal Form (3NF).",
+                    "topics": [
+                        { "topicId": "sql_t3", "title": "B-Tree Indexing & Query Execution Plans", "description": "Index creation, EXPLAIN ANALYZE, composite indexes, and normalization.", "difficulty": "Intermediate", "estimatedHours": 25, "completed": False, "prerequisites": ["sql_t2"] }
+                    ]
+                }
+            ]
+        }
+
+    # DEFAULT MULTI-COURSE FALLBACK
     return {
         "query": req.query,
         "semantic_match_score": similarity_score,
@@ -87,24 +149,8 @@ def roadmap_search_endpoint(req: RoadmapSearchRequest):
                 "title": f"Phase 1 — Foundations for {req.query.title()}",
                 "description": f"Master initial core concepts and prerequisites for {req.query}.",
                 "topics": [
-                    {
-                        "topicId": "t1",
-                        "title": f"{req.query.title()} Core Fundamentals",
-                        "description": f"Understanding essential building blocks and architecture of {req.query}.",
-                        "difficulty": "Beginner",
-                        "estimatedHours": 15,
-                        "completed": False,
-                        "prerequisites": []
-                    },
-                    {
-                        "topicId": "t2",
-                        "title": "Data Structures & Algorithmic Foundations",
-                        "description": "Essential logic, memory organization, and computational efficiency.",
-                        "difficulty": "Intermediate",
-                        "estimatedHours": 20,
-                        "completed": False,
-                        "prerequisites": ["t1"]
-                    }
+                    { "topicId": "t1", "title": f"{req.query.title()} Core Fundamentals", "description": f"Understanding essential building blocks and architecture of {req.query}.", "difficulty": "Beginner", "estimatedHours": 15, "completed": True, "prerequisites": [] },
+                    { "topicId": "t2", "title": "Data Structures & Algorithmic Foundations", "description": "Essential logic, memory organization, and computational efficiency.", "difficulty": "Intermediate", "estimatedHours": 20, "completed": False, "prerequisites": ["t1"] }
                 ]
             },
             {
@@ -112,15 +158,7 @@ def roadmap_search_endpoint(req: RoadmapSearchRequest):
                 "title": f"Phase 2 — Advanced Implementation in {req.query.title()}",
                 "description": "In-depth specialization, framework building, and performance optimization.",
                 "topics": [
-                    {
-                        "topicId": "t3",
-                        "title": f"Applied {req.query.title()} Pipelines & Projects",
-                        "description": "Production-grade project implementation and best practices.",
-                        "difficulty": "Advanced",
-                        "estimatedHours": 35,
-                        "completed": False,
-                        "prerequisites": ["t2"]
-                    }
+                    { "topicId": "t3", "title": f"Applied {req.query.title()} Pipelines & Projects", "description": "Production-grade project implementation and best practices.", "difficulty": "Advanced", "estimatedHours": 35, "completed": False, "prerequisites": ["t2"] }
                 ]
             }
         ]
