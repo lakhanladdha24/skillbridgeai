@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Sparkles, Compass, CheckCircle2, Circle, ArrowRight, BookOpen, 
-    Layers, Video, FileText, Code2, ExternalLink, X, Star
-} from 'lucide-react';
+import { Sparkles, Compass } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import VisualFlowchart from '../components/VisualFlowchart';
+import EmbeddedMaterialModal from '../components/EmbeddedMaterialModal';
 
 interface TopicNode {
     topicId: string;
@@ -278,196 +276,67 @@ const RoadmapView: React.FC = () => {
                 </div>
             </div>
 
-            {/* Phases Timeline Graph */}
-            <div className="space-y-8 relative">
-                {/* Vertical connecting bar */}
-                <div className="absolute left-6 top-8 bottom-8 w-1 bg-white/10 hidden md:block" />
+            {/* Visual Step-by-Step Flowchart */}
+            <div className="mb-12">
+                <VisualFlowchart
+                    courseTitle={roadmapData.goal || "Course Roadmap"}
+                    nodes={roadmapData.phases?.flatMap((ph: Phase, pIdx: number) =>
+                        ph.topics.map((t, tIdx) => {
+                            let level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Mastery' = 'Beginner';
+                            if (pIdx === 1 || tIdx === 1) level = 'Intermediate';
+                            if (pIdx === 2 || t.difficulty === 'Advanced') level = 'Advanced';
+                            if (pIdx >= 3) level = 'Mastery';
 
-                {roadmapData.phases?.map((phase: Phase, idx: number) => (
-                    <div key={phase.phaseId} className="relative pl-0 md:pl-16 space-y-4">
-                        {/* Phase Badge */}
-                        <div className="flex items-center gap-3">
-                            <span className="w-10 h-10 rounded-2xl bg-primary/20 text-primary border border-primary/30 flex items-center justify-center font-black font-mono text-sm z-10">
-                                {idx + 1}
-                            </span>
-                            <div>
-                                <h3 className="text-lg font-black text-white">{phase.title}</h3>
-                                <p className="text-xs text-gray-400">{phase.description}</p>
-                            </div>
-                        </div>
-
-                        {/* Topic Cards Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {phase.topics.map((t) => (
-                                <motion.div
-                                    key={t.topicId}
-                                    whileHover={{ scale: 1.01 }}
-                                    className={`p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-4 ${
-                                        t.completed
-                                            ? 'bg-green-500/10 border-green-500/30'
-                                            : 'glass-card border-white/10 hover:border-primary/50'
-                                    }`}
-                                    onClick={() => handleOpenTopic(t)}
-                                >
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-bold text-gray-400 font-mono">{t.estimatedHours} Hours</span>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleTopicComplete(phase.phaseId, t.topicId);
-                                                }}
-                                                className="text-gray-400 hover:text-green-400 transition-colors"
-                                            >
-                                                {t.completed ? <CheckCircle2 className="text-green-400" size={20} /> : <Circle size={20} />}
-                                            </button>
-                                        </div>
-
-                                        <h4 className="text-base font-bold text-white mb-1">{t.title}</h4>
-                                        <p className="text-xs text-gray-400 line-clamp-2">{t.description}</p>
-                                    </div>
-
-                                    <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[11px]">
-                                        <span className="text-primary font-bold flex items-center gap-1">
-                                            <BookOpen size={12} /> Study Notes & Videos
-                                        </span>
-                                        <span className="text-gray-400 flex items-center gap-1 font-mono">
-                                            Open Drawer <ArrowRight size={12} />
-                                        </span>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </div>
-                ))}
+                            return {
+                                id: t.topicId,
+                                title: t.title,
+                                description: t.description,
+                                level,
+                                estimatedHours: t.estimatedHours,
+                                completed: t.completed,
+                                prerequisites: t.prerequisites
+                            };
+                        })
+                    ) || []}
+                    onNodeClick={(node) => {
+                        handleOpenTopic({
+                            topicId: node.id,
+                            title: node.title,
+                            description: node.description,
+                            difficulty: node.level,
+                            estimatedHours: node.estimatedHours,
+                            completed: node.completed,
+                            prerequisites: node.prerequisites
+                        });
+                    }}
+                    onToggleComplete={(nodeId) => {
+                        roadmapData.phases?.forEach((ph: Phase) => {
+                            ph.topics.forEach((t) => {
+                                if (t.topicId === nodeId) {
+                                    toggleTopicComplete(ph.phaseId, t.topicId);
+                                }
+                            });
+                        });
+                    }}
+                />
             </div>
 
-            {/* TOPIC STUDY MATERIAL DRAWER MODAL */}
-            <AnimatePresence>
-                {selectedTopic && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex justify-end"
-                        onClick={() => setSelectedTopic(null)}
-                    >
-                        <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="w-full max-w-2xl bg-gray-950 border-l border-white/10 h-full p-6 md:p-8 overflow-y-auto flex flex-col justify-between"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div>
-                                {/* Modal Header */}
-                                <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
-                                    <div>
-                                        <span className="text-xs text-primary font-mono font-bold uppercase tracking-widest">Skill Bridge Study Hub</span>
-                                        <h2 className="text-2xl font-black text-white">{selectedTopic.title}</h2>
-                                    </div>
-                                    <button
-                                        onClick={() => setSelectedTopic(null)}
-                                        className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
-                                    >
-                                        <X size={20} />
-                                    </button>
-                                </div>
-
-                                {isLoadingStudy ? (
-                                    <div className="p-12 text-center text-primary font-semibold animate-pulse">
-                                        Loading grounded study notes & recommended videos...
-                                    </div>
-                                ) : topicStudyData ? (
-                                    <div className="space-y-6">
-                                        {/* Definition & Concept */}
-                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-2">
-                                            <h4 className="text-sm font-bold text-primary flex items-center gap-2">
-                                                <FileText size={16} /> Overview & Key Concepts
-                                            </h4>
-                                            <p className="text-xs text-gray-300 leading-relaxed">{topicStudyData.studyNotes?.definition}</p>
-                                            <p className="text-xs text-gray-400 leading-relaxed">{topicStudyData.studyNotes?.explanation}</p>
-                                        </div>
-
-                                        {/* Visual Flowchart ASCII */}
-                                        {topicStudyData.studyNotes?.flowchart && (
-                                            <div className="p-4 bg-gray-900 rounded-2xl border border-white/10 space-y-2 font-mono text-xs">
-                                                <h4 className="text-xs font-bold text-secondary flex items-center gap-2 font-sans">
-                                                    <Layers size={14} /> Visual Process Flowchart
-                                                </h4>
-                                                <pre className="text-green-400 overflow-x-auto p-2 bg-black/40 rounded-xl leading-snug">
-                                                    {topicStudyData.studyNotes.flowchart}
-                                                </pre>
-                                            </div>
-                                        )}
-
-                                        {/* Code Example */}
-                                        {topicStudyData.studyNotes?.codeExample && (
-                                            <div className="p-4 bg-gray-900 rounded-2xl border border-white/10 space-y-2 font-mono text-xs">
-                                                <h4 className="text-xs font-bold text-accent flex items-center gap-2 font-sans">
-                                                    <Code2 size={14} /> Code Example
-                                                </h4>
-                                                <pre className="text-gray-200 overflow-x-auto p-3 bg-black/50 rounded-xl">
-                                                    {topicStudyData.studyNotes.codeExample}
-                                                </pre>
-                                            </div>
-                                        )}
-
-                                        {/* Ranked YouTube Educational Videos */}
-                                        <div className="space-y-3">
-                                            <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                                                <Video size={16} className="text-red-400" /> Ranked Video Tutorials
-                                            </h4>
-
-                                            {topicStudyData.videos?.map((vid: any, i: number) => (
-                                                <a
-                                                    key={i}
-                                                    href={vid.url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all block space-y-2 group"
-                                                >
-                                                    <div className="flex items-center justify-between gap-2">
-                                                        <span className="text-xs font-bold text-white group-hover:text-primary transition-colors flex items-center gap-1">
-                                                            {vid.title} <ExternalLink size={12} />
-                                                        </span>
-                                                        <span className="text-[10px] px-2 py-0.5 rounded bg-green-500/20 text-green-400 font-mono font-bold">
-                                                            {vid.isFree ? 'FREE' : 'RESOURCE'}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-xs text-gray-400">{vid.summary}</p>
-                                                    <div className="flex items-center justify-between text-[11px] text-gray-500 font-mono">
-                                                        <span>Creator: {vid.creator}</span>
-                                                        <span className="flex items-center gap-1 text-yellow-400 font-bold">
-                                                            <Star size={12} fill="currentColor" /> {vid.score}
-                                                        </span>
-                                                    </div>
-                                                </a>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="text-xs text-gray-400">Study material unavailable for this topic.</div>
-                                )}
-                            </div>
-
-                            {/* Footer Actions */}
-                            <div className="pt-6 border-t border-white/10 flex gap-3">
-                                <button
-                                    onClick={() => {
-                                        setSelectedTopic(null);
-                                        navigate('/coding-lab');
-                                    }}
-                                    className="w-full py-3 bg-primary text-black font-black text-xs rounded-xl shadow-lg hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <Code2 size={16} /> Practice Coding Problems
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Embedded In-App Learning Material Modal */}
+            <EmbeddedMaterialModal
+                node={selectedTopic ? {
+                    id: selectedTopic.topicId,
+                    title: selectedTopic.title,
+                    description: selectedTopic.description,
+                    level: (selectedTopic.difficulty as any) || 'Intermediate',
+                    estimatedHours: selectedTopic.estimatedHours,
+                    completed: selectedTopic.completed,
+                    prerequisites: selectedTopic.prerequisites
+                } : null}
+                studyData={topicStudyData}
+                isLoading={isLoadingStudy}
+                onClose={() => setSelectedTopic(null)}
+                onNavigateToCoding={() => navigate('/coding-lab')}
+            />
         </div>
     );
 };
