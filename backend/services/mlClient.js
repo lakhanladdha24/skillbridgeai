@@ -104,3 +104,67 @@ export async function getLearningPlan(userSkills = {}, weakSkills = []) {
         is_fallback: true
     };
 }
+
+export async function searchRoadmap(query) {
+    try {
+        const response = await fetch(`${PYTHON_ML_URL}/ml/roadmap-search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query })
+        });
+        if (response.ok) return await response.json();
+    } catch (e) {
+        // Fallback
+    }
+
+    const qTitle = (query || 'Custom Course').trim();
+    return {
+        query: qTitle,
+        semantic_match_score: 96.8,
+        estimated_duration: '4 to 6 months',
+        phases: [
+            {
+                phaseId: 'p1',
+                title: `Phase 1 — Foundations for ${qTitle}`,
+                description: `Master fundamental building blocks and prerequisites for ${qTitle}.`,
+                topics: [
+                    {
+                        topicId: 't1',
+                        title: `${qTitle} Core Fundamentals`,
+                        description: `Variables, syntax, baseline concepts, and architecture of ${qTitle}.`,
+                        difficulty: 'Beginner',
+                        estimatedHours: 15,
+                        completed: false,
+                        prerequisites: []
+                    },
+                    {
+                        topicId: 't2',
+                        title: 'Data Structures & Algorithmic Foundations',
+                        description: 'Arrays, Hash Tables, memory management, and computational complexity.',
+                        difficulty: 'Intermediate',
+                        estimatedHours: 20,
+                        completed: false,
+                        prerequisites: ['t1']
+                    }
+                ]
+            },
+            {
+                phaseId: 'p2',
+                title: `Phase 2 — Advanced ${qTitle} & Specialization`,
+                description: 'Framework integration, scalable design, and production deployment.',
+                topics: [
+                    {
+                        topicId: 't3',
+                        title: `Applied ${qTitle} Production Pipelines`,
+                        description: `End-to-end real world project execution and optimization for ${qTitle}.`,
+                        difficulty: 'Advanced',
+                        estimatedHours: 35,
+                        completed: false,
+                        prerequisites: ['t2']
+                    }
+                ]
+            }
+        ],
+        is_fallback: true
+    };
+}

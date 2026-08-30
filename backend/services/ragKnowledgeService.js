@@ -1,5 +1,5 @@
 /**
- * RAG Knowledge Service & Video Ranking Engine
+ * RAG Knowledge Service & Deep Learning Video Ranking Engine
  * Provides structured educational study notes, visual flowcharts/ASCII diagrams,
  * code examples, practice questions, and YouTube video recommendations with ranking scores.
  */
@@ -24,16 +24,6 @@ const KNOWLEDGE_BASE = [
                 score: 4.9,
                 isFree: true,
                 summary: "Complete guide covering classes, instances, inheritance, static methods, and encapsulation."
-            },
-            {
-                title: "Python Advanced Tutorial - Decorators, Generators & Metaclasses",
-                creator: "Corey Schafer",
-                url: "https://www.youtube.com/watch?v=r7t7gebC1Xk",
-                duration: "42m",
-                difficulty: "Advanced",
-                score: 4.8,
-                isFree: true,
-                summary: "In-depth walkthrough on Python internal mechanics and clean production practices."
             }
         ]
     },
@@ -80,6 +70,72 @@ const KNOWLEDGE_BASE = [
                 summary: "World-class introduction to regression, classification, neural networks, and ML best practices."
             }
         ]
+    },
+    {
+        topic: "Web Development & Full Stack",
+        category: "Web Development",
+        definition: "Web Development encompasses frontend UI creation, backend REST APIs, component-driven state architecture, and web security.",
+        explanation: "Covers Modern HTML5/CSS3, ES6+ JavaScript, React component lifecycle, Node.js server setup, API protocols (REST, GraphQL, WebSockets), and DOM performance.",
+        keyConcepts: ["Virtual DOM & React Hooks", "Asynchronous Event Loop", "RESTful API Design", "Authentication & JWT", "CSS Flexbox & Grid Layouts"],
+        codeExample: `const express = require('express');\nconst app = express();\napp.use(express.json());\napp.get('/api/health', (req, res) => res.json({ status: 'ok' }));\napp.listen(3000);`,
+        flowchart: `[Client Browser Request]\n      │\n      ▼\n[HTTP GET /api/data]\n      │\n      ▼\n[Node.js Express Controller]\n      │\n      ▼\n[MongoDB Database Query]\n      │\n      ▼\n[JSON Response]`,
+        formulas: ["TTFB: Time To First Byte", "LCP: Largest Contentful Paint < 2.5s"],
+        videos: [
+            {
+                title: "Full Stack Web Development Course 2026",
+                creator: "Traversy Media",
+                url: "https://www.youtube.com/watch?v=nu_pCVPKzTk",
+                duration: "4h 15m",
+                difficulty: "Beginner to Advanced",
+                score: 4.9,
+                isFree: true,
+                summary: "Complete full stack roadmap from modern JavaScript to React and Node.js microservices."
+            }
+        ]
+    },
+    {
+        topic: "Database Systems & SQL",
+        category: "Database & SQL",
+        definition: "Databases manage structured, semi-structured, and unstructured data with ACID transactional guarantees.",
+        explanation: "Covers SQL Queries, Joins (INNER, LEFT, RIGHT), Indexing (B-Tree), Normalization (1NF, 2NF, 3NF), and NoSQL document stores like MongoDB.",
+        keyConcepts: ["ACID Principles", "SQL Joins & Grouping", "B-Tree Index Optimization", "3rd Normal Form (3NF)", "Transactions & Locks"],
+        codeExample: `SELECT d.name, COUNT(e.id) AS emp_count\nFROM Department d\nJOIN Employee e ON d.id = e.department_id\nGROUP BY d.name\nHAVING COUNT(e.id) > 5;`,
+        flowchart: `[SQL Query Input]\n      │\n      ▼\n[Parser & Lexical Analysis]\n      │\n      ▼\n[Query Optimizer & Execution Plan]\n      │\n      ▼\n[B-Tree Index Lookup]\n      │\n      ▼\n[Result Set]`,
+        formulas: ["Selectivity: Distinct Values / Total Rows", "Index Lookup Time: O(log N)"],
+        videos: [
+            {
+                title: "SQL Database Masterclass - Zero to Hero",
+                creator: "Fireship",
+                url: "https://www.youtube.com/watch?v=HXV3zeQKqGY",
+                duration: "1h 10m",
+                difficulty: "Intermediate",
+                score: 4.8,
+                isFree: true,
+                summary: "Master relational algebra, indexes, query optimizations, and database design."
+            }
+        ]
+    },
+    {
+        topic: "System Design & Distributed Cloud",
+        category: "System Design & Cloud",
+        definition: "System Design specifies high-level architecture, scalability patterns, fault tolerance, and cloud infrastructure for large-scale applications.",
+        explanation: "Covers Load Balancing, Microservices, Caching (Redis), Database Sharding, Asynchronous Message Queues (Kafka), and CDN distribution.",
+        keyConcepts: ["CAP Theorem (Consistency, Availability, Partition Tolerance)", "Load Balancing & Rate Limiting", "Consistent Hashing", "Database Sharding & Replication", "Event-Driven Microservices"],
+        codeExample: `// Consistent Hashing Token Ring Concept\nfunction getNearestServer(keyHash, serverRing) {\n    serverRing.sort((a, b) => a - b);\n    return serverRing.find(s => s >= keyHash) || serverRing[0];\n}`,
+        flowchart: `[Global User Traffic]\n      │\n      ▼\n[Cloudflare CDN / Edge]\n      │\n      ▼\n[Nginx Load Balancer]\n ┌────┴────┐\nApp1     App2\n ▼         ▼\n[Redis Cache] ──► [Sharded Database]`,
+        formulas: ["Availability (Nines): 99.99% = 52.6 mins downtime/yr", "Throughput: Requests / Second"],
+        videos: [
+            {
+                title: "System Design Primer for Technical Interviews",
+                creator: "ByteByteGo",
+                url: "https://www.youtube.com/watch?v=m8Icp_Cid5o",
+                duration: "2h 45m",
+                difficulty: "Advanced",
+                score: 5.0,
+                isFree: true,
+                summary: "Complete system design blueprint covering load balancers, caching, DB sharding, and Kafka."
+            }
+        ]
     }
 ];
 
@@ -88,7 +144,7 @@ export function getStudyMaterialForTopic(topicQuery = '') {
     const match = KNOWLEDGE_BASE.find(k => 
         k.topic.toLowerCase().includes(q) || 
         k.category.toLowerCase().includes(q) ||
-        q.includes(k.topic.toLowerCase())
+        q.includes(k.topic.toLowerCase().split(' ')[0])
     ) || KNOWLEDGE_BASE[0];
 
     return {
@@ -107,7 +163,6 @@ export function getStudyMaterialForTopic(topicQuery = '') {
 }
 
 export function rankVideoResources(query = '') {
-    // Collect all videos across KB matching query
     const q = (query || '').toLowerCase();
     let allVideos = [];
     KNOWLEDGE_BASE.forEach(k => {

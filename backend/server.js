@@ -11,7 +11,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import connectDB from './db.js';
 import User from './models/User.js';
 import { logLearningEvent, getUserEvents } from './services/eventLogger.js';
-import { predictSkill, predictCareers, getLearningPlan } from './services/mlClient.js';
+import { predictSkill, predictCareers, getLearningPlan, searchRoadmap } from './services/mlClient.js';
 import Roadmap from './models/Roadmap.js';
 import { analyzeAssessmentResult } from './services/assessmentEngine.js';
 import { executeCode } from './services/codeExecutor.js';
@@ -328,6 +328,16 @@ app.get('/api/videos/recommend', (req, res) => {
 });
 
 // --- ROADMAP AI GENERATOR API ---
+app.post('/api/roadmap/search', async (req, res) => {
+    try {
+        const { query } = req.body;
+        const result = await searchRoadmap(query || 'AI Engineer');
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/roadmap/generate', async (req, res) => {
     try {
         const { goal, currentSkills, studyTimeDaily } = req.body;

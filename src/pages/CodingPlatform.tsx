@@ -21,6 +21,7 @@ const CodingPlatform: React.FC = () => {
     // Search and Filters
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [difficultyFilter, setDifficultyFilter] = useState<string>('All');
+    const [courseFilter, setCourseFilter] = useState<string>('All');
 
     const handleSelectProblem = (p: CodingProblem) => {
         setSelectedProblem(p);
@@ -94,21 +95,50 @@ const CodingPlatform: React.FC = () => {
         }
     };
 
+    const courses = [
+        'All',
+        'Artificial Intelligence & ML',
+        'DSA & Algorithms',
+        'Web Development',
+        'Python Programming',
+        'Database & SQL',
+        'System Design & Cloud'
+    ];
+
     const filteredProblems = leetcodeProblems.filter((p) => {
         const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.category.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesDiff = difficultyFilter === 'All' || p.difficulty === difficultyFilter;
-        return matchesSearch && matchesDiff;
+        const matchesCourse = courseFilter === 'All' || p.category.toLowerCase().includes(courseFilter.toLowerCase().split(' ')[0]);
+        return matchesSearch && matchesDiff && matchesCourse;
     });
 
     return (
         <div className="max-w-[1600px] mx-auto pt-4 px-4 pb-16 min-h-screen flex flex-col gap-4">
+            {/* Course Selector Bar */}
+            <div className="glass-card p-4 rounded-2xl border border-white/10 flex flex-wrap items-center gap-2 overflow-x-auto">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">Course:</span>
+                {courses.map((c) => (
+                    <button
+                        key={c}
+                        onClick={() => setCourseFilter(c)}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+                            courseFilter === c
+                                ? 'bg-primary text-black border-primary shadow-lg shadow-primary/20'
+                                : 'bg-white/5 border-white/10 text-gray-300 hover:border-white/20'
+                        }`}
+                    >
+                        {c}
+                    </button>
+                ))}
+            </div>
+
             {/* Top Bar: Problem Selector & Filters */}
             <div className="glass-card p-4 rounded-2xl border border-white/10 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3 flex-1 min-w-[280px]">
                     <Search size={18} className="text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Search coding problems by title or topic..."
+                        placeholder="Search coding problems by title, course, or topic..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="bg-transparent text-sm text-white placeholder-gray-500 focus:outline-none w-full"
