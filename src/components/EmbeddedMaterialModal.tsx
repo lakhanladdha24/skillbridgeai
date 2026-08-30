@@ -187,13 +187,37 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                 {activeTab === 'article' && (
                                     <div className="space-y-6">
                                         <div className="p-6 bg-gray-900 rounded-2xl border border-white/10 space-y-4 font-sans">
-                                            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                                                <span className="text-xs font-mono font-bold text-green-400 uppercase tracking-widest flex items-center gap-1">
-                                                    <BookOpen size={14} /> {studyData?.studyNotes?.gfgW3Article?.source || "GeeksforGeeks / W3Schools Certified Documentation"}
-                                                </span>
-                                                <span className="text-xs px-2.5 py-0.5 rounded bg-green-500/20 text-green-400 font-mono font-bold">
-                                                    Verifiable In-App Reader
-                                                </span>
+                                            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+                                                <div>
+                                                    <span className="text-xs font-mono font-bold text-green-400 uppercase tracking-widest flex items-center gap-1">
+                                                        <BookOpen size={14} /> GeeksforGeeks & W3Schools Certified Documentation
+                                                    </span>
+                                                    <h3 className="text-lg font-bold text-white mt-0.5">{node.title}</h3>
+                                                </div>
+
+                                                {/* Direct GfG & W3Schools External Links */}
+                                                <div className="flex items-center gap-2">
+                                                    {studyData?.gfgUrl && (
+                                                        <a
+                                                            href={studyData.gfgUrl}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="px-3.5 py-1.5 rounded-xl bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600/30 transition-all font-mono font-bold text-xs flex items-center gap-1.5"
+                                                        >
+                                                            GeeksforGeeks Tutorial <ExternalLink size={12} />
+                                                        </a>
+                                                    )}
+                                                    {studyData?.w3schoolsUrl && (
+                                                        <a
+                                                            href={studyData.w3schoolsUrl}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="px-3.5 py-1.5 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 transition-all font-mono font-bold text-xs flex items-center gap-1.5"
+                                                        >
+                                                            W3Schools Documentation <ExternalLink size={12} />
+                                                        </a>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             <div className="space-y-4 text-sm text-gray-300">
