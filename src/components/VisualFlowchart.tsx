@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Circle, ArrowDown, BookOpen, Sparkles, Layers } from 'lucide-react';
+import { CheckCircle2, Circle, ArrowDown, BookOpen, Layers } from 'lucide-react';
 
 export interface FlowchartNode {
     id: string;
@@ -108,12 +108,18 @@ const VisualFlowchart: React.FC<VisualFlowchartProps> = ({
                                 </div>
 
                                 {/* Flowchart Action Bar */}
-                                <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs">
-                                    <span className="text-primary font-bold flex items-center gap-1">
-                                        <BookOpen size={14} /> Open In-App Video & PDF Reader
-                                    </span>
-                                    <span className="text-gray-400 font-mono text-[11px] flex items-center gap-1">
-                                        <Sparkles size={12} className="text-secondary" /> Learn inside SkillBridge AI
+                                <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs flex-wrap gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-mono font-bold">
+                                            ★ 4.9 Rated Tutorial
+                                        </span>
+                                        <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-mono font-bold">
+                                            📄 Downloadable PDF
+                                        </span>
+                                    </div>
+
+                                    <span className="text-primary font-bold flex items-center gap-1 font-mono text-[11px]">
+                                        <BookOpen size={13} /> Open Step Learning Hub ➔
                                     </span>
                                 </div>
                             </motion.div>

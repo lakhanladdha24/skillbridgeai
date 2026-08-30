@@ -210,22 +210,36 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                         <div className="p-6 bg-white/5 rounded-3xl border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
                                             <div className="space-y-2">
                                                 <span className="text-xs font-mono font-bold text-secondary flex items-center gap-1">
-                                                    <Download size={14} /> Skill Bridge PDF Documentation Reader
+                                                    <Download size={14} /> Skill Bridge Downloadable Study Guide
                                                 </span>
                                                 <h3 className="text-xl font-bold text-white">
                                                     {studyData?.studyNotes?.pdfGuide?.title || `${node.title} Complete Study Guide`}
                                                 </h3>
                                                 <p className="text-xs text-gray-400 max-w-xl">
-                                                    {studyData?.studyNotes?.pdfGuide?.summary || "Download or view the official reference PDF handbook covering key formulas, code patterns, and interview questions."}
+                                                    {studyData?.studyNotes?.pdfGuide?.summary || "Download the official reference study handbook covering key formulas, code patterns, and interview questions."}
                                                 </p>
                                             </div>
 
                                             <div className="flex flex-col gap-2 w-full md:w-auto">
                                                 <button
-                                                    onClick={() => alert(`Downloading ${studyData?.studyNotes?.pdfGuide?.downloadName || 'study_guide.pdf'}...`)}
+                                                    onClick={() => {
+                                                        const pdfData = studyData?.studyNotes?.pdfGuide;
+                                                        const fileName = pdfData?.downloadName || `${node.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_guide.md`;
+                                                        const content = pdfData?.markdownContent || `# ${node.title} Study Guide\n\n## Definition\n${studyData?.studyNotes?.definition || ''}\n\n## Explanation\n${studyData?.studyNotes?.explanation || ''}\n\n## Code Example\n\`\`\`python\n${studyData?.studyNotes?.codeExample || ''}\n\`\`\`\n`;
+                                                        
+                                                        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+                                                        const url = URL.createObjectURL(blob);
+                                                        const a = document.createElement('a');
+                                                        a.href = url;
+                                                        a.download = fileName;
+                                                        document.body.appendChild(a);
+                                                        a.click();
+                                                        document.body.removeChild(a);
+                                                        URL.revokeObjectURL(url);
+                                                    }}
                                                     className="px-6 py-3 bg-primary text-black font-black text-xs rounded-2xl shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                                                 >
-                                                    <Download size={16} /> Download PDF ({studyData?.studyNotes?.pdfGuide?.fileSize || '2.4 MB'})
+                                                    <Download size={16} /> Download Study Guide ({studyData?.studyNotes?.pdfGuide?.fileSize || '1.8 MB'})
                                                 </button>
                                             </div>
                                         </div>
