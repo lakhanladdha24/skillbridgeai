@@ -6,6 +6,19 @@ import {
 } from 'lucide-react';
 import { FlowchartNode } from './VisualFlowchart';
 
+export function toEmbedUrl(urlStr: string): string {
+    if (!urlStr) return "https://www.youtube-nocookie.com/embed/_uQrJ0TkZlc";
+    if (urlStr.includes("embed/")) return urlStr;
+
+    // Handle watch?v=VIDEO_ID
+    const watchMatch = urlStr.match(/(?:v=|\/v\/|embed\/|youtu\.be\/|\/shorts\/)([a-zA-Z0-9_-]{11})/);
+    if (watchMatch && watchMatch[1]) {
+        return `https://www.youtube-nocookie.com/embed/${watchMatch[1]}`;
+    }
+
+    return urlStr;
+}
+
 interface EmbeddedMaterialModalProps {
     node: FlowchartNode | null;
     studyData: any;
@@ -121,7 +134,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                             <>
                                                 <div className="aspect-video w-full rounded-2xl overflow-hidden border border-white/10 bg-black shadow-lg">
                                                     <iframe
-                                                        src={currentVideo.embedUrl || "https://www.youtube-nocookie.com/embed/Ej_02ICOIgs"}
+                                                        src={toEmbedUrl(currentVideo.embedUrl || currentVideo.url)}
                                                         title={currentVideo.title}
                                                         className="w-full h-full"
                                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
