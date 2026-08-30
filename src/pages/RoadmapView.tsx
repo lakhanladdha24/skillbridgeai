@@ -287,8 +287,17 @@ const RoadmapView: React.FC = () => {
                             if (pIdx === 2 || t.difficulty === 'Advanced') level = 'Advanced';
                             if (pIdx >= 3) level = 'Mastery';
 
+                            // Generate step key based on goal/course & index
+                            const goalLower = (roadmapData.goal || '').toLowerCase();
+                            let stepKey = `python_step_${pIdx + 1}`;
+                            if (goalLower.includes('dsa') || goalLower.includes('algorithm') || goalLower.includes('structure')) {
+                                stepKey = `dsa_step_${pIdx + 1}`;
+                            } else if (goalLower.includes('ai') || goalLower.includes('machine') || goalLower.includes('learning')) {
+                                stepKey = `ai_step_${pIdx + 1}`;
+                            }
+
                             return {
-                                id: t.topicId,
+                                id: stepKey,
                                 title: t.title,
                                 description: t.description,
                                 level,
