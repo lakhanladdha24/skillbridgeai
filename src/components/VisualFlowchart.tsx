@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Circle, ArrowDown, BookOpen, Layers } from 'lucide-react';
+import { CheckCircle2, Circle, ArrowDown, BookOpen, Layers, ZoomIn, ZoomOut, RotateCcw, Lock } from 'lucide-react';
 
 export interface FlowchartNode {
     id: string;
@@ -9,22 +9,16 @@ export interface FlowchartNode {
     level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Mastery';
     estimatedHours: number;
     completed: boolean;
-    prerequisites: string[];
+    locked?: boolean;
+    prerequisites?: string[];
 }
 
 interface VisualFlowchartProps {
     courseTitle: string;
     nodes: FlowchartNode[];
     onNodeClick: (node: FlowchartNode) => void;
-    onToggleComplete: (nodeId: string) => void;
+    onToggleComplete?: (nodeId: string) => void;
 }
-
-const levelColors: Record<string, { bg: string; border: string; text: string }> = {
-    Beginner: { bg: 'bg-green-500/10', border: 'border-green-500/30', text: 'text-green-400' },
-    Intermediate: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400' },
-    Advanced: { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400' },
-    Mastery: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400' }
-};
 
 const VisualFlowchart: React.FC<VisualFlowchartProps> = ({
     courseTitle,
@@ -32,107 +26,167 @@ const VisualFlowchart: React.FC<VisualFlowchartProps> = ({
     onNodeClick,
     onToggleComplete
 }) => {
+    const [zoomLevel, setZoomLevel] = useState<number>(1);
+
+    const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 0.15, 1.4));
+    const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 0.15, 0.7));
+    const handleResetZoom = () => setZoomLevel(1);
+
+    const getLevelBadge = (level: FlowchartNode['level']) => {
+        switch (level) {
+            case 'Beginner':
+                return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+            case 'Intermediate':
+                return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+            case 'Advanced':
+                return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+            case 'Mastery':
+                return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+            default:
+                return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+        }
+    };
+
     return (
-        <div className="glass-card p-6 md:p-8 rounded-3xl border border-white/10 space-y-6">
-            {/* Header */}
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+        <div className="glass-card p-6 md:p-8 rounded-3xl border border-white/10 relative overflow-hidden">
+            {/* Flowchart Control Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-white/10">
                 <div>
-                    <span className="text-xs font-mono font-bold text-primary flex items-center gap-1 uppercase tracking-wider">
-                        <Layers size={14} /> Interactive Skill Roadmap Flowchart
+                    <span className="text-xs font-mono text-primary font-bold uppercase tracking-widest flex items-center gap-1.5">
+                        <Layers size={14} /> Interactive Step-by-Step Learning Map
                     </span>
-                    <h2 className="text-xl md:text-2xl font-black text-white">{courseTitle} — Learning Path</h2>
+                    <h2 className="text-xl md:text-2xl font-black text-white mt-1">
+                        {courseTitle} Dependency Flowchart
+                    </h2>
                 </div>
-                <div className="flex items-center gap-2 text-xs font-mono font-bold text-gray-400">
-                    <span className="px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">Beginner</span>
-                    <span>➔</span>
-                    <span className="px-2.5 py-1 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Intermediate</span>
-                    <span>➔</span>
-                    <span className="px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">Advanced</span>
-                    <span>➔</span>
-                    <span className="px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">Mastery</span>
+
+                {/* Zoom & Pan Controls */}
+                <div className="flex items-center gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/10 self-start sm:self-auto">
+                    <button
+                        onClick={handleZoomOut}
+                        title="Zoom Out (-)"
+                        className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all"
+                    >
+                        <ZoomOut size={16} />
+                    </button>
+                    <button
+                        onClick={handleResetZoom}
+                        title="Reset Pan & Zoom"
+                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-mono font-bold text-gray-300 hover:text-white transition-all flex items-center gap-1"
+                    >
+                        <RotateCcw size={14} /> {Math.round(zoomLevel * 100)}%
+                    </button>
+                    <button
+                        onClick={handleZoomIn}
+                        title="Zoom In (+)"
+                        className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all"
+                    >
+                        <ZoomIn size={16} />
+                    </button>
                 </div>
             </div>
 
-            {/* Vertical Connected Flowchart Nodes */}
-            <div className="space-y-6 relative max-w-3xl mx-auto py-4">
+            {/* Interactive Graph Node Stream */}
+            <div
+                style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }}
+                className="transition-transform duration-300 ease-out space-y-6 max-w-3xl mx-auto"
+            >
                 {nodes.map((node, index) => {
-                    const style = levelColors[node.level] || levelColors.Beginner;
                     const isLast = index === nodes.length - 1;
 
                     return (
-                        <React.Fragment key={node.id}>
+                        <div key={node.id} className="relative flex flex-col items-center">
+                            {/* Node Card */}
                             <motion.div
-                                whileHover={{ scale: 1.01 }}
-                                className={`p-6 rounded-3xl border transition-all cursor-pointer relative ${
+                                whileHover={{ scale: node.locked ? 1 : 1.02 }}
+                                whileTap={{ scale: node.locked ? 1 : 0.98 }}
+                                onClick={() => !node.locked && onNodeClick(node)}
+                                className={`w-full p-5 rounded-2xl border transition-all cursor-pointer shadow-lg relative ${
                                     node.completed
-                                        ? 'bg-green-500/10 border-green-500/30'
-                                        : `${style.bg} ${style.border} hover:border-primary`
+                                        ? 'bg-emerald-950/20 border-emerald-500/50 hover:border-emerald-400'
+                                        : node.locked
+                                        ? 'bg-white/5 border-white/5 opacity-60 cursor-not-allowed'
+                                        : 'bg-white/5 border-white/10 hover:border-primary/50 hover:bg-white/10'
                                 }`}
-                                onClick={() => onNodeClick(node)}
                             >
                                 <div className="flex items-start justify-between gap-4">
-                                    <div className="space-y-2 flex-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold uppercase tracking-wider ${style.bg} ${style.text} ${style.border} border`}>
-                                                Step {index + 1}: {node.level}
-                                            </span>
-                                            <span className="text-[11px] text-gray-400 font-mono">
-                                                ⏱ {node.estimatedHours} Hours
-                                            </span>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (onToggleComplete && !node.locked) onToggleComplete(node.id);
+                                            }}
+                                            className="focus:outline-none"
+                                        >
+                                            {node.completed ? (
+                                                <CheckCircle2 size={24} className="text-emerald-400" />
+                                            ) : node.locked ? (
+                                                <Lock size={20} className="text-gray-500" />
+                                            ) : (
+                                                <Circle size={24} className="text-gray-500 hover:text-primary transition-all" />
+                                            )}
+                                        </button>
+
+                                        <div>
+                                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${getLevelBadge(node.level)}`}>
+                                                    {node.level}
+                                                </span>
+                                                <span className="text-[10px] font-mono text-gray-400">
+                                                    ~{node.estimatedHours} Hours
+                                                </span>
+                                                {node.completed && (
+                                                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
+                                                        ✓ Completed
+                                                    </span>
+                                                )}
+                                                {node.locked && (
+                                                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-gray-500/20 text-gray-400">
+                                                        🔒 Locked (Prerequisite Required)
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <h3 className="text-base font-bold text-white group-hover:text-primary transition-all">
+                                                Step {index + 1}: {node.title}
+                                            </h3>
                                         </div>
-
-                                        <h3 className="text-lg font-bold text-white group-hover:text-primary transition-colors flex items-center gap-2">
-                                            {node.title}
-                                        </h3>
-
-                                        <p className="text-xs text-gray-300 leading-relaxed">
-                                            {node.description}
-                                        </p>
                                     </div>
-
-                                    {/* Completion Toggle Button */}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onToggleComplete(node.id);
-                                        }}
-                                        className="p-1 text-gray-400 hover:text-green-400 transition-colors"
-                                        title={node.completed ? "Mark Incomplete" : "Mark Complete"}
-                                    >
-                                        {node.completed ? (
-                                            <CheckCircle2 className="text-green-400" size={24} />
-                                        ) : (
-                                            <Circle size={24} />
-                                        )}
-                                    </button>
                                 </div>
+
+                                <p className="text-xs text-gray-400 mt-2 line-clamp-2 leading-relaxed">
+                                    {node.description}
+                                </p>
 
                                 {/* Flowchart Action Bar */}
                                 <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs flex-wrap gap-2">
                                     <div className="flex items-center gap-2">
                                         <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-mono font-bold">
-                                            ★ 4.9 Rated Tutorial
+                                            ★ 4.9 Video Tutorial
                                         </span>
                                         <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-mono font-bold">
-                                            📄 Downloadable PDF
+                                            📄 PDF Handbook
+                                        </span>
+                                        <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-mono font-bold">
+                                            🚀 Projects
                                         </span>
                                     </div>
 
                                     <span className="text-primary font-bold flex items-center gap-1 font-mono text-[11px]">
-                                        <BookOpen size={13} /> Open Step Learning Hub ➔
+                                        <BookOpen size={13} /> Open Step Panel ➔
                                     </span>
                                 </div>
                             </motion.div>
 
-                            {/* Directional Connection Arrow */}
+                            {/* Connecting Dependency Arrow */}
                             {!isLast && (
-                                <div className="flex justify-center my-2">
-                                    <div className="p-2 rounded-full bg-white/5 border border-white/10 text-primary animate-bounce">
-                                        <ArrowDown size={18} />
-                                    </div>
+                                <div className="my-2 flex flex-col items-center text-primary/60">
+                                    <div className="w-0.5 h-6 bg-gradient-to-b from-primary/60 to-secondary/60" />
+                                    <ArrowDown size={18} className="text-secondary -mt-1 animate-pulse" />
                                 </div>
                             )}
-                        </React.Fragment>
+                        </div>
                     );
                 })}
             </div>

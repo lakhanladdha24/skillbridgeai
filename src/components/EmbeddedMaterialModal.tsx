@@ -2,18 +2,17 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     X, Video, FileText, Download, Code2, CheckCircle2, 
-    Sparkles, BookOpen, ExternalLink
+    ExternalLink, BookOpen, AlertTriangle, Rocket, Bookmark
 } from 'lucide-react';
 import { FlowchartNode } from './VisualFlowchart';
 
 export function toEmbedUrl(urlStr: string): string {
-    if (!urlStr) return "https://www.youtube-nocookie.com/embed/_uQrJ0TkZlc";
+    if (!urlStr) return "https://www.youtube.com/embed/rfscVS0vtbw";
     if (urlStr.includes("embed/")) return urlStr;
 
-    // Handle watch?v=VIDEO_ID
     const watchMatch = urlStr.match(/(?:v=|\/v\/|embed\/|youtu\.be\/|\/shorts\/)([a-zA-Z0-9_-]{11})/);
     if (watchMatch && watchMatch[1]) {
-        return `https://www.youtube-nocookie.com/embed/${watchMatch[1]}`;
+        return `https://www.youtube.com/embed/${watchMatch[1]}`;
     }
 
     return urlStr;
@@ -24,6 +23,7 @@ interface EmbeddedMaterialModalProps {
     studyData: any;
     isLoading: boolean;
     onClose: () => void;
+    onToggleComplete: (nodeId: string) => void;
     onNavigateToCoding: () => void;
 }
 
@@ -32,102 +32,122 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
     studyData,
     isLoading,
     onClose,
+    onToggleComplete,
     onNavigateToCoding
 }) => {
-    const [activeTab, setActiveTab] = useState<'video' | 'article' | 'pdf' | 'practice'>('video');
+    const [activeTab, setActiveTab] = useState<'video' | 'article' | 'pdf' | 'practice' | 'docs' | 'projects'>('video');
     const [selectedVidIdx, setSelectedVidIdx] = useState<number>(0);
+    const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
 
     if (!node) return null;
 
     const currentVideo = studyData?.videos?.[selectedVidIdx] || studyData?.videos?.[0];
+    const projectObj = studyData?.projects?.[0];
 
     return (
         <AnimatePresence>
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:p-6"
-                onClick={onClose}
-            >
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 bg-black/80 backdrop-blur-md">
                 <motion.div
-                    initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                    transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                    className="w-full max-w-5xl bg-gray-950 border border-white/10 rounded-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"
-                    onClick={(e) => e.stopPropagation()}
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    className="glass-card w-full max-w-5xl h-[90vh] flex flex-col rounded-3xl border border-white/10 overflow-hidden shadow-2xl bg-gray-950"
                 >
-                    {/* Top Header Bar */}
-                    <div className="p-6 border-b border-white/10 flex items-center justify-between gap-4 bg-white/5">
-                        <div>
-                            <span className="text-xs text-primary font-mono font-bold uppercase tracking-widest flex items-center gap-1">
-                                <Sparkles size={14} /> In-App Learning Hub — Skill Bridge AI
-                            </span>
-                            <h2 className="text-2xl font-black text-white">{node.title}</h2>
+                    {/* Header */}
+                    <div className="p-6 md:px-8 md:py-6 border-b border-white/10 flex items-center justify-between gap-4 bg-white/5">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                    {node.level} LEVEL
+                                </span>
+                                <span className="text-[10px] font-mono text-gray-400">
+                                    ESTIMATED: {node.estimatedHours} HOURS
+                                </span>
+                                {node.completed && (
+                                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 flex items-center gap-1">
+                                        <CheckCircle2 size={12} /> COMPLETED
+                                    </span>
+                                )}
+                            </div>
+                            <h2 className="text-xl md:text-2xl font-black text-white">{node.title}</h2>
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all"
-                        >
-                            <X size={20} />
-                        </button>
+
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setIsBookmarked(!isBookmarked)}
+                                className={`p-2.5 rounded-2xl border transition-all ${
+                                    isBookmarked ? 'bg-amber-500/20 border-amber-500 text-amber-400' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                                }`}
+                                title="Save / Bookmark Topic"
+                            >
+                                <Bookmark size={18} />
+                            </button>
+
+                            <button
+                                onClick={() => onToggleComplete(node.id)}
+                                className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+                                    node.completed
+                                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30'
+                                        : 'bg-primary text-black font-black hover:bg-primary/90 shadow-lg shadow-primary/20'
+                                }`}
+                            >
+                                <CheckCircle2 size={16} />
+                                {node.completed ? 'Mark as Incomplete' : 'Mark as Completed'}
+                            </button>
+
+                            <button
+                                onClick={onClose}
+                                className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all border border-white/10"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
                     </div>
+
+                    {/* PREREQUISITES CHECK BANNER */}
+                    {node.prerequisites && node.prerequisites.length > 0 && (
+                        <div className="px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex items-center gap-3 text-xs text-amber-300">
+                            <AlertTriangle size={16} className="text-amber-400 flex-shrink-0" />
+                            <span>
+                                <strong>Recommended Prerequisites:</strong> Ensure you understand prerequisite concepts ({node.prerequisites.join(', ')}) before continuing.
+                            </span>
+                        </div>
+                    )}
 
                     {/* Navigation Tabs Bar */}
-                    <div className="flex border-b border-white/10 px-6 gap-6 bg-black/40 overflow-x-auto">
-                        <button
-                            onClick={() => setActiveTab('video')}
-                            className={`py-3.5 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
-                                activeTab === 'video'
-                                    ? 'text-primary border-primary'
-                                    : 'text-gray-400 border-transparent hover:text-white'
-                            }`}
-                        >
-                            <Video size={16} /> In-App Video Tutorial
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('article')}
-                            className={`py-3.5 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
-                                activeTab === 'article'
-                                    ? 'text-primary border-primary'
-                                    : 'text-gray-400 border-transparent hover:text-white'
-                            }`}
-                        >
-                            <FileText size={16} /> GfG / W3Schools Article
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('pdf')}
-                            className={`py-3.5 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
-                                activeTab === 'pdf'
-                                    ? 'text-primary border-primary'
-                                    : 'text-gray-400 border-transparent hover:text-white'
-                            }`}
-                        >
-                            <Download size={16} /> PDF Handbook & Cheat Sheet
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('practice')}
-                            className={`py-3.5 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
-                                activeTab === 'practice'
-                                    ? 'text-primary border-primary'
-                                    : 'text-gray-400 border-transparent hover:text-white'
-                            }`}
-                        >
-                            <Code2 size={16} /> Interactive Practice
-                        </button>
+                    <div className="flex items-center gap-2 px-6 overflow-x-auto border-b border-white/10 bg-black/40 scrollbar-none">
+                        {[
+                            { id: 'video', label: '📺 Videos', icon: Video },
+                            { id: 'article', label: '📚 Articles', icon: FileText },
+                            { id: 'pdf', label: '📄 Study Material', icon: Download },
+                            { id: 'practice', label: '💻 Practice', icon: Code2 },
+                            { id: 'docs', label: '📖 Documentation', icon: BookOpen },
+                            { id: 'projects', label: '🚀 Projects', icon: Rocket }
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`py-3.5 px-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
+                                    activeTab === tab.id
+                                        ? 'text-primary border-primary font-black'
+                                        : 'text-gray-400 border-transparent hover:text-white'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
                     </div>
 
-                    {/* Main Content Area */}
+                    {/* Main Content Body */}
                     <div className="p-6 md:p-8 overflow-y-auto flex-1 space-y-6">
                         {isLoading ? (
                             <div className="p-12 text-center text-primary font-semibold animate-pulse flex items-center justify-center gap-3">
                                 <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                                Loading grounded study notes, embedded video & PDF handbook...
+                                Loading learning resources, video lectures & documentation...
                             </div>
                         ) : (
                             <>
-                                {/* TAB 1: IN-APP VIDEO PLAYER */}
+                                {/* TAB 1: VIDEOS */}
                                 {activeTab === 'video' && (
                                     <div className="space-y-4">
                                         {currentVideo ? (
@@ -145,25 +165,25 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                                 <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                                                     <div>
                                                         <h4 className="font-bold text-white text-base">{currentVideo.title}</h4>
-                                                        <p className="text-xs text-gray-400">{currentVideo.summary}</p>
+                                                        <p className="text-xs text-gray-400 mt-1">{currentVideo.summary}</p>
                                                         <div className="flex items-center gap-4 text-xs font-mono text-gray-500 mt-2">
                                                             <span>Creator: {currentVideo.creator}</span>
                                                             <span>Duration: {currentVideo.duration}</span>
-                                                            <span className="text-yellow-400 font-bold">Rating: {currentVideo.ratingText || `★ ${currentVideo.score}`}</span>
+                                                            <span className="text-yellow-400 font-bold">{currentVideo.ratingText || `★ ${currentVideo.score}`}</span>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                {/* Multiple Videos Selection Bar */}
+                                                {/* Multi-Video Selector Pills */}
                                                 {studyData?.videos?.length > 1 && (
                                                     <div className="space-y-2 pt-2">
-                                                        <h5 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select Available Video Result:</h5>
+                                                        <h5 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select Available Video Tutorial:</h5>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                                             {studyData.videos.map((v: any, i: number) => (
                                                                 <button
                                                                     key={i}
                                                                     onClick={() => setSelectedVidIdx(i)}
-                                                                    className={`p-3 rounded-xl border text-left transition-all font-sans text-xs ${
+                                                                    className={`p-3 rounded-xl border text-left transition-all text-xs font-sans ${
                                                                         selectedVidIdx === i
                                                                             ? 'bg-primary/20 border-primary text-white shadow-md'
                                                                             : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
@@ -178,176 +198,126 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                                 )}
                                             </>
                                         ) : (
-                                            <div className="text-xs text-gray-400 p-8 text-center">No video available for this topic.</div>
+                                            <div className="text-xs text-gray-400 p-8 text-center">No video available.</div>
                                         )}
                                     </div>
                                 )}
 
-                                {/* TAB 2: GFG / W3SCHOOLS ARTICLE & CODE */}
+                                {/* TAB 2: ARTICLES */}
                                 {activeTab === 'article' && (
-                                    <div className="space-y-6">
+                                    <div className="space-y-4">
                                         <div className="p-6 bg-gray-900 rounded-2xl border border-white/10 space-y-4 font-sans">
-                                            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
-                                                <div>
-                                                    <span className="text-xs font-mono font-bold text-green-400 uppercase tracking-widest flex items-center gap-1">
-                                                        <BookOpen size={14} /> GeeksforGeeks & W3Schools Certified Documentation
-                                                    </span>
-                                                    <h3 className="text-lg font-bold text-white mt-0.5">{node.title}</h3>
-                                                </div>
+                                            <h3 className="text-lg font-bold text-white">GeeksforGeeks & W3Schools Certified Documentation</h3>
+                                            <p className="text-sm text-gray-300 leading-relaxed">{studyData?.studyNotes?.definition}</p>
+                                            <p className="text-sm text-gray-400 leading-relaxed">{studyData?.studyNotes?.explanation}</p>
 
-                                                {/* Direct GfG & W3Schools External Links */}
-                                                <div className="flex items-center gap-2">
-                                                    {studyData?.gfgUrl && (
-                                                        <a
-                                                            href={studyData.gfgUrl}
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="px-3.5 py-1.5 rounded-xl bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600/30 transition-all font-mono font-bold text-xs flex items-center gap-1.5"
-                                                        >
-                                                            GeeksforGeeks Tutorial <ExternalLink size={12} />
-                                                        </a>
-                                                    )}
-                                                    {studyData?.w3schoolsUrl && (
-                                                        <a
-                                                            href={studyData.w3schoolsUrl}
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="px-3.5 py-1.5 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 transition-all font-mono font-bold text-xs flex items-center gap-1.5"
-                                                        >
-                                                            W3Schools Documentation <ExternalLink size={12} />
-                                                        </a>
-                                                    )}
-                                                </div>
+                                            <div className="flex flex-wrap items-center gap-3 pt-3">
+                                                {studyData?.gfgUrl && (
+                                                    <a href={studyData.gfgUrl} target="_blank" rel="noreferrer" className="px-4 py-2 bg-green-600/20 text-green-400 border border-green-500/30 rounded-xl text-xs font-bold hover:bg-green-600/30 transition-all flex items-center gap-1.5">
+                                                        GeeksforGeeks Article <ExternalLink size={12} />
+                                                    </a>
+                                                )}
+                                                {studyData?.w3schoolsUrl && (
+                                                    <a href={studyData.w3schoolsUrl} target="_blank" rel="noreferrer" className="px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-bold hover:bg-blue-600/30 transition-all flex items-center gap-1.5">
+                                                        W3Schools Tutorial <ExternalLink size={12} />
+                                                    </a>
+                                                )}
                                             </div>
+                                        </div>
+                                    </div>
+                                )}
 
-                                            <div className="space-y-4 text-sm text-gray-300">
-                                                <p className="leading-relaxed font-sans">{studyData?.studyNotes?.definition}</p>
-                                                <p className="leading-relaxed font-sans text-gray-400">{studyData?.studyNotes?.explanation}</p>
-                                            </div>
+                                {/* TAB 3: STUDY MATERIAL / PDF */}
+                                {activeTab === 'pdf' && (
+                                    <div className="p-6 bg-white/5 rounded-3xl border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
+                                        <div className="space-y-2">
+                                            <span className="text-xs font-mono font-bold text-secondary flex items-center gap-1">
+                                                <Download size={14} /> Legitimate Reference PDF & Markdown Cheat Sheet
+                                            </span>
+                                            <h3 className="text-xl font-bold text-white">
+                                                {studyData?.studyNotes?.pdfGuide?.title || `${node.title} Complete Study Guide`}
+                                            </h3>
+                                            <p className="text-xs text-gray-400 max-w-xl">
+                                                {studyData?.studyNotes?.pdfGuide?.summary || "Download reference handbook covering formulas, syntax, and interview questions."}
+                                            </p>
+                                        </div>
 
-                                            {/* Article Sections */}
-                                            {studyData?.studyNotes?.gfgW3Article?.sections?.map((sec: any, idx: number) => (
-                                                <div key={idx} className="p-4 bg-black/40 rounded-xl border border-white/5 space-y-2">
-                                                    <h4 className="font-bold text-white text-sm">{sec.title}</h4>
-                                                    <p className="text-xs text-gray-300 leading-relaxed">{sec.content}</p>
-                                                </div>
-                                            ))}
+                                        <button
+                                            onClick={() => {
+                                                const pdfData = studyData?.studyNotes?.pdfGuide;
+                                                const fileName = pdfData?.downloadName || `${node.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_guide.md`;
+                                                const content = pdfData?.markdownContent || `# ${node.title} Study Guide\n\n## Overview\n${studyData?.studyNotes?.definition || ''}\n`;
+                                                
+                                                const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+                                                const url = URL.createObjectURL(blob);
+                                                const a = document.createElement('a');
+                                                a.href = url;
+                                                a.download = fileName;
+                                                document.body.appendChild(a);
+                                                a.click();
+                                                document.body.removeChild(a);
+                                                URL.revokeObjectURL(url);
+                                            }}
+                                            className="px-6 py-3 bg-primary text-black font-black text-xs rounded-2xl shadow-lg hover:bg-primary/90 transition-all flex items-center gap-2"
+                                        >
+                                            <Download size={16} /> Download Study Guide ({studyData?.studyNotes?.pdfGuide?.fileSize || '1.8 MB'})
+                                        </button>
+                                    </div>
+                                )}
 
-                                            {/* Key Concepts */}
-                                            {studyData?.studyNotes?.keyConcepts?.length > 0 && (
-                                                <div className="pt-2">
-                                                    <h4 className="font-bold text-white text-xs mb-2">Key Concepts to Remember:</h4>
-                                                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs font-mono text-gray-300">
-                                                        {studyData.studyNotes.keyConcepts.map((kc: string, i: number) => (
-                                                            <li key={i} className="p-2 bg-white/5 rounded-lg border border-white/5 flex items-center gap-2">
-                                                                <CheckCircle2 size={14} className="text-primary" /> {kc}
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
+                                {/* TAB 4: PRACTICE */}
+                                {activeTab === 'practice' && (
+                                    <div className="p-8 bg-white/5 rounded-3xl border border-white/10 text-center space-y-4">
+                                        <Code2 size={36} className="text-primary mx-auto" />
+                                        <h3 className="text-xl font-bold text-white">Skill Bridge Interactive Coding Sandbox</h3>
+                                        <p className="text-xs text-gray-400 max-w-md mx-auto">
+                                            Solve 18+ LeetCode-style problem challenges for {node.title} directly inside our multi-language code runner.
+                                        </p>
+                                        <button
+                                            onClick={onNavigateToCoding}
+                                            className="px-6 py-3 bg-primary text-black font-black text-xs rounded-2xl shadow-lg hover:bg-primary/90 transition-all inline-flex items-center gap-2"
+                                        >
+                                            <Code2 size={16} /> Launch Practice Lab
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* TAB 5: DOCUMENTATION */}
+                                {activeTab === 'docs' && (
+                                    <div className="space-y-4">
+                                        <div className="p-6 bg-white/5 rounded-2xl border border-white/10 space-y-3">
+                                            <h4 className="font-bold text-white">{studyData?.docName || "Official Documentation"}</h4>
+                                            <p className="text-xs text-gray-400">Read official specification guidelines and API manuals directly from the source.</p>
+                                            {studyData?.officialDocUrl && (
+                                                <a
+                                                    href={studyData.officialDocUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary/10 border border-primary/30 text-primary font-bold text-xs rounded-xl hover:bg-primary hover:text-black transition-all"
+                                                >
+                                                    Open Official Docs <ExternalLink size={12} />
+                                                </a>
                                             )}
                                         </div>
-
-                                        {/* Code Snippet Box */}
-                                        {studyData?.studyNotes?.codeExample && (
-                                            <div className="p-4 bg-gray-900 rounded-2xl border border-white/10 space-y-2 font-mono text-xs">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-bold text-accent flex items-center gap-1 font-sans">
-                                                        <Code2 size={14} /> Production Code Implementation
-                                                    </span>
-                                                    <span className="text-[10px] text-gray-500 font-mono">Python / JS</span>
-                                                </div>
-                                                <pre className="text-green-400 overflow-x-auto p-4 bg-black/60 rounded-xl leading-relaxed">
-                                                    {studyData.studyNotes.codeExample}
-                                                </pre>
-                                            </div>
-                                        )}
                                     </div>
                                 )}
 
-                                {/* TAB 3: PDF HANDBOOK & CHEAT SHEET */}
-                                {activeTab === 'pdf' && (
-                                    <div className="space-y-6">
-                                        <div className="p-6 bg-white/5 rounded-3xl border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
-                                            <div className="space-y-2">
-                                                <span className="text-xs font-mono font-bold text-secondary flex items-center gap-1">
-                                                    <Download size={14} /> Skill Bridge Downloadable Study Guide
-                                                </span>
-                                                <h3 className="text-xl font-bold text-white">
-                                                    {studyData?.studyNotes?.pdfGuide?.title || `${node.title} Complete Study Guide`}
-                                                </h3>
-                                                <p className="text-xs text-gray-400 max-w-xl">
-                                                    {studyData?.studyNotes?.pdfGuide?.summary || "Download the official reference study handbook covering key formulas, code patterns, and interview questions."}
-                                                </p>
-                                            </div>
-
-                                            <div className="flex flex-col gap-2 w-full md:w-auto">
-                                                <button
-                                                    onClick={() => {
-                                                        const pdfData = studyData?.studyNotes?.pdfGuide;
-                                                        const fileName = pdfData?.downloadName || `${node.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_guide.md`;
-                                                        const content = pdfData?.markdownContent || `# ${node.title} Study Guide\n\n## Definition\n${studyData?.studyNotes?.definition || ''}\n\n## Explanation\n${studyData?.studyNotes?.explanation || ''}\n\n## Code Example\n\`\`\`python\n${studyData?.studyNotes?.codeExample || ''}\n\`\`\`\n`;
-                                                        
-                                                        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-                                                        const url = URL.createObjectURL(blob);
-                                                        const a = document.createElement('a');
-                                                        a.href = url;
-                                                        a.download = fileName;
-                                                        document.body.appendChild(a);
-                                                        a.click();
-                                                        document.body.removeChild(a);
-                                                        URL.revokeObjectURL(url);
-                                                    }}
-                                                    className="px-6 py-3 bg-primary text-black font-black text-xs rounded-2xl shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
-                                                >
-                                                    <Download size={16} /> Download Study Guide ({studyData?.studyNotes?.pdfGuide?.fileSize || '1.8 MB'})
-                                                </button>
-                                            </div>
+                                {/* TAB 6: PROJECTS */}
+                                {activeTab === 'projects' && (
+                                    <div className="p-6 bg-gray-900 rounded-3xl border border-white/10 space-y-4">
+                                        <div className="flex items-center gap-2">
+                                            <Rocket size={20} className="text-accent" />
+                                            <h3 className="text-lg font-bold text-white">{projectObj?.title || `Hands-on Project for ${node.title}`}</h3>
                                         </div>
+                                        <p className="text-xs text-gray-300">{projectObj?.problemStatement || `Build a real-world application putting ${node.title} concepts into production practice.`}</p>
 
-                                        {/* In-App PDF Preview Block */}
-                                        <div className="p-6 bg-gray-900 rounded-3xl border border-white/10 font-mono text-xs space-y-4">
-                                            <h4 className="font-bold text-white text-sm font-sans flex items-center gap-2">
-                                                <FileText size={16} className="text-primary" /> PDF Handbook Quick Preview
-                                            </h4>
-                                            <div className="p-4 bg-black/60 rounded-2xl text-gray-300 space-y-3">
-                                                <div className="text-green-400 font-bold border-b border-white/10 pb-2">
-                                                    [DOCUMENT PAGE 1] — {node.title} Core Master Cheat Sheet
-                                                </div>
-                                                <p className="text-xs text-gray-300 font-sans">
-                                                    1. Core Architecture: Designed for maximum execution efficiency and scalable software design.
-                                                </p>
-                                                <p className="text-xs text-gray-300 font-sans">
-                                                    2. Key Algorithms & Data Operations: Focuses on minimizing time complexity (O(1) to O(N log N)).
-                                                </p>
-                                                <pre className="text-xs text-secondary bg-black/40 p-3 rounded-xl overflow-x-auto">
-                                                    {studyData?.studyNotes?.flowchart || "[Visual Process Flowchart Node Tree]"}
-                                                </pre>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* TAB 4: INTERACTIVE PRACTICE */}
-                                {activeTab === 'practice' && (
-                                    <div className="space-y-6 text-center py-8">
-                                        <div className="max-w-md mx-auto space-y-4">
-                                            <div className="p-4 rounded-full bg-primary/10 border border-primary/20 text-primary w-16 h-16 mx-auto flex items-center justify-center">
-                                                <Code2 size={32} />
-                                            </div>
-                                            <h3 className="text-xl font-bold text-white">Practice Coding Problems for {node.title}</h3>
-                                            <p className="text-xs text-gray-400">
-                                                Test your knowledge in our sandboxed multi-language Coding Lab with real-time test case evaluation.
-                                            </p>
-                                            <button
-                                                onClick={() => {
-                                                    onClose();
-                                                    onNavigateToCoding();
-                                                }}
-                                                className="px-8 py-3.5 bg-primary text-black font-black text-xs rounded-2xl shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 mx-auto"
-                                            >
-                                                Launch Coding Lab <ExternalLink size={14} />
-                                            </button>
+                                        <div className="space-y-2 pt-2 border-t border-white/10">
+                                            <h4 className="text-xs font-bold text-gray-400 uppercase">Step-by-Step Guidance:</h4>
+                                            <ul className="text-xs text-gray-400 space-y-1 font-mono">
+                                                {projectObj?.stepByStepInstructions?.map((step: string, idx: number) => (
+                                                    <li key={idx}>• {step}</li>
+                                                )) || <li>• Implement core logic, test cases, and push to GitHub.</li>}
+                                            </ul>
                                         </div>
                                     </div>
                                 )}
@@ -355,7 +325,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                         )}
                     </div>
                 </motion.div>
-            </motion.div>
+            </div>
         </AnimatePresence>
     );
 };
