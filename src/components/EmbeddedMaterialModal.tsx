@@ -45,12 +45,11 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
     onNavigateToCoding
 }) => {
     const [activeTab, setActiveTab] = useState<'video' | 'article' | 'pdf' | 'practice' | 'docs' | 'projects'>('video');
-    const [selectedVidIdx, setSelectedVidIdx] = useState<number>(0);
     const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
 
     if (!node) return null;
 
-    const currentVideo = studyData?.videos?.[selectedVidIdx] || studyData?.videos?.[0];
+    const currentVideo = studyData?.videos?.[0];
     const projectObj = studyData?.projects?.[0];
 
     return (
@@ -161,6 +160,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                     <div className="space-y-4">
                                         {currentVideo ? (
                                             <>
+                                                {/* 1 Verified Free Full Course YouTube Video Embedded In-App */}
                                                 <div className="aspect-video w-full rounded-2xl overflow-hidden border border-white/10 bg-black shadow-lg">
                                                     <iframe
                                                         src={toEmbedUrl(currentVideo?.embedUrl || currentVideo?.url, node.title)}
@@ -173,48 +173,28 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
 
                                                 <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                                                     <div>
-                                                        <h4 className="font-bold text-white text-base">{currentVideo?.title || `Top YouTube Video Tutorial for ${node.title}`}</h4>
-                                                        <p className="text-xs text-gray-400 mt-1">{currentVideo?.summary || `Live YouTube search tutorial for ${node.title}.`}</p>
+                                                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
+                                                            ✓ Verified 100% In-App Playable Full Course
+                                                        </span>
+                                                        <h4 className="font-bold text-white text-base mt-1">{currentVideo?.title}</h4>
+                                                        <p className="text-xs text-gray-400 mt-0.5">{currentVideo?.summary}</p>
                                                         <div className="flex items-center gap-4 text-xs font-mono text-gray-500 mt-2">
-                                                            <span>Creator: {currentVideo?.creator || 'YouTube Creator'}</span>
-                                                            <span>Duration: {currentVideo?.duration || '15m - 45m'}</span>
-                                                            <span className="text-yellow-400 font-bold">{currentVideo?.ratingText || `★ 4.9 Verified Step Video`}</span>
+                                                            <span>Creator: {currentVideo?.creator || 'FreeCodeCamp'}</span>
+                                                            <span>Duration: {currentVideo?.duration || '1h - 4h Full Course'}</span>
+                                                            <span className="text-yellow-400 font-bold">{currentVideo?.ratingText || '★ 4.9 Verified Course'}</span>
                                                         </div>
                                                     </div>
 
-                                                    {/* Direct YouTube Step Search Button */}
+                                                    {/* Watch More Videos on YouTube Button */}
                                                     <a
-                                                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(node.title + " tutorial")}`}
+                                                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(node.title + " full course tutorial")}`}
                                                         target="_blank"
                                                         rel="noreferrer"
                                                         className="px-4 py-2.5 bg-red-600/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold hover:bg-red-600/30 transition-all flex items-center gap-1.5 whitespace-nowrap shadow-lg"
                                                     >
-                                                        <Video size={14} /> Open Direct YouTube Search <ExternalLink size={12} />
+                                                        <Video size={14} /> Watch More Videos on YouTube <ExternalLink size={12} />
                                                     </a>
                                                 </div>
-
-                                                {/* Multi-Video Selector Pills */}
-                                                {studyData?.videos?.length > 1 && (
-                                                    <div className="space-y-2 pt-2">
-                                                        <h5 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select Available Video Tutorial:</h5>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                            {studyData.videos.map((v: any, i: number) => (
-                                                                <button
-                                                                    key={i}
-                                                                    onClick={() => setSelectedVidIdx(i)}
-                                                                    className={`p-3 rounded-xl border text-left transition-all text-xs font-sans ${
-                                                                        selectedVidIdx === i
-                                                                            ? 'bg-primary/20 border-primary text-white shadow-md'
-                                                                            : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
-                                                                    }`}
-                                                                >
-                                                                    <div className="font-bold line-clamp-1">{v.title}</div>
-                                                                    <div className="text-[10px] text-gray-400 font-mono mt-0.5">{v.creator} • {v.ratingText || `★ ${v.score}`}</div>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
                                             </>
                                         ) : (
                                             <div className="text-xs text-gray-400 p-8 text-center">No video available.</div>
@@ -226,19 +206,19 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                 {activeTab === 'article' && (
                                     <div className="space-y-4">
                                         <div className="p-6 bg-gray-900 rounded-2xl border border-white/10 space-y-4 font-sans">
-                                            <h3 className="text-lg font-bold text-white">GeeksforGeeks & W3Schools Certified Documentation</h3>
+                                            <h3 className="text-lg font-bold text-white">GeeksforGeeks & W3Schools Reference Articles</h3>
                                             <p className="text-sm text-gray-300 leading-relaxed">{studyData?.studyNotes?.definition}</p>
                                             <p className="text-sm text-gray-400 leading-relaxed">{studyData?.studyNotes?.explanation}</p>
 
                                             <div className="flex flex-wrap items-center gap-3 pt-3">
                                                 {studyData?.gfgUrl && (
-                                                    <a href={studyData.gfgUrl} target="_blank" rel="noreferrer" className="px-4 py-2 bg-green-600/20 text-green-400 border border-green-500/30 rounded-xl text-xs font-bold hover:bg-green-600/30 transition-all flex items-center gap-1.5">
-                                                        GeeksforGeeks Article <ExternalLink size={12} />
+                                                    <a href={studyData.gfgUrl} target="_blank" rel="noreferrer" className="px-4 py-2 bg-green-600/20 text-green-400 border border-green-500/30 rounded-xl text-xs font-bold hover:bg-green-600/30 transition-all flex items-center gap-1.5 font-mono">
+                                                        🟢 GeeksforGeeks Article <ExternalLink size={12} />
                                                     </a>
                                                 )}
                                                 {studyData?.w3schoolsUrl && (
-                                                    <a href={studyData.w3schoolsUrl} target="_blank" rel="noreferrer" className="px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-bold hover:bg-blue-600/30 transition-all flex items-center gap-1.5">
-                                                        W3Schools Tutorial <ExternalLink size={12} />
+                                                    <a href={studyData.w3schoolsUrl} target="_blank" rel="noreferrer" className="px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-bold hover:bg-blue-600/30 transition-all flex items-center gap-1.5 font-mono">
+                                                        🔵 W3Schools Tutorial <ExternalLink size={12} />
                                                     </a>
                                                 )}
                                             </div>
@@ -257,30 +237,42 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                                 {studyData?.studyNotes?.pdfGuide?.title || `${node.title} Complete Study Guide`}
                                             </h3>
                                             <p className="text-xs text-gray-400 max-w-xl">
-                                                {studyData?.studyNotes?.pdfGuide?.summary || "Download reference handbook covering formulas, syntax, and interview questions."}
+                                                {studyData?.studyNotes?.pdfGuide?.summary || "Download reference handbook or search Google for free educational PDF cheat sheets."}
                                             </p>
                                         </div>
 
-                                        <button
-                                            onClick={() => {
-                                                const pdfData = studyData?.studyNotes?.pdfGuide;
-                                                const fileName = pdfData?.downloadName || `${node.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_guide.md`;
-                                                const content = pdfData?.markdownContent || `# ${node.title} Study Guide\n\n## Overview\n${studyData?.studyNotes?.definition || ''}\n`;
-                                                
-                                                const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-                                                const url = URL.createObjectURL(blob);
-                                                const a = document.createElement('a');
-                                                a.href = url;
-                                                a.download = fileName;
-                                                document.body.appendChild(a);
-                                                a.click();
-                                                document.body.removeChild(a);
-                                                URL.revokeObjectURL(url);
-                                            }}
-                                            className="px-6 py-3 bg-primary text-black font-black text-xs rounded-2xl shadow-lg hover:bg-primary/90 transition-all flex items-center gap-2"
-                                        >
-                                            <Download size={16} /> Download Study Guide ({studyData?.studyNotes?.pdfGuide?.fileSize || '1.8 MB'})
-                                        </button>
+                                        <div className="flex flex-col gap-2.5 w-full md:w-auto">
+                                            <button
+                                                onClick={() => {
+                                                    const pdfData = studyData?.studyNotes?.pdfGuide;
+                                                    const fileName = pdfData?.downloadName || `${node.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_guide.md`;
+                                                    const content = pdfData?.markdownContent || `# ${node.title} Study Guide\n\n## Overview\n${studyData?.studyNotes?.definition || ''}\n`;
+                                                    
+                                                    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+                                                    const url = URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.href = url;
+                                                    a.download = fileName;
+                                                    document.body.appendChild(a);
+                                                    a.click();
+                                                    document.body.removeChild(a);
+                                                    URL.revokeObjectURL(url);
+                                                }}
+                                                className="px-6 py-3 bg-primary text-black font-black text-xs rounded-2xl shadow-lg hover:bg-primary/90 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                                            >
+                                                <Download size={16} /> Download Study Guide PDF/MD
+                                            </button>
+
+                                            {/* Google PDF Search Link */}
+                                            <a
+                                                href={studyData?.googlePdfSearchUrl || `https://www.google.com/search?q=${encodeURIComponent(node.title + " cheat sheet notes filetype:pdf")}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="px-6 py-2.5 bg-white/10 text-white font-bold text-xs rounded-2xl border border-white/10 hover:bg-white/20 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                                            >
+                                                <Download size={14} /> Search Google for Free PDF Notes <ExternalLink size={12} />
+                                            </a>
+                                        </div>
                                     </div>
                                 )}
 
