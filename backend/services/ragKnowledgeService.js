@@ -53,16 +53,16 @@ export async function fetchLiveYouTubeVideos(query = 'Software Engineering') {
 
     return [
         {
-            title: match.title,
-            creator: match.creator,
-            embedUrl: match.embedUrl,
-            url: match.embedUrl.replace('/embed/', '/watch?v='),
-            duration: "1h 30m",
-            difficulty: "Recommended",
-            score: match.score,
-            ratingText: `★ ${match.score} Verified Embed Tutorial`,
+            title: `${cleanQuery} — YouTube Video Tutorial`,
+            creator: match.creator || "YouTube Creator",
+            embedUrl: `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(cleanQuery + " tutorial")}`,
+            url: `https://www.youtube.com/results?search_query=${encodeURIComponent(cleanQuery + " tutorial")}`,
+            duration: "20m - 50m",
+            difficulty: "Step Recommended",
+            score: match.score || "4.9",
+            ratingText: `★ ${match.score || "4.9"} Verified Step Video`,
             isFree: true,
-            summary: `Dedicated video lecture covering ${cleanQuery}.`
+            summary: `Live YouTube video search tutorial covering ${cleanQuery}.`
         }
     ];
 }
