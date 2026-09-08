@@ -3,7 +3,7 @@ import { leetcodeProblems, CodingProblem } from '../data/leetcodeProblems';
 import CodeEditor from '../components/CodeEditor';
 import { 
     Play, Send, CheckCircle2, XCircle, Clock, Cpu, Code2, 
-    BookOpen, Lightbulb, Search, Filter
+    BookOpen, Lightbulb, Search, Filter, RotateCcw, Trash2
 } from 'lucide-react';
 
 const CodingPlatform: React.FC = () => {
@@ -34,6 +34,15 @@ const CodingPlatform: React.FC = () => {
         setSelectedLanguage(lang);
         const code = selectedProblem.starterCode[lang as keyof typeof selectedProblem.starterCode] || selectedProblem.starterCode.python;
         setUserCode(code);
+    };
+
+    const handleResetCode = () => {
+        const defaultStarter = selectedProblem.starterCode[selectedLanguage as keyof typeof selectedProblem.starterCode] || selectedProblem.starterCode.python;
+        setUserCode(defaultStarter);
+    };
+
+    const handleClearCode = () => {
+        setUserCode('');
     };
 
     const handleRunCode = async () => {
@@ -313,6 +322,22 @@ const CodingPlatform: React.FC = () => {
                         </div>
 
                         <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleResetCode}
+                                title="Reset to starter template"
+                                className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/15 text-gray-300 hover:text-white font-mono text-xs rounded-xl flex items-center gap-1.5 transition-all"
+                            >
+                                <RotateCcw size={13} /> Reset Template
+                            </button>
+
+                            <button
+                                onClick={handleClearCode}
+                                title="Clear editor to write from scratch"
+                                className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-red-500/20 text-gray-300 hover:text-red-400 font-mono text-xs rounded-xl flex items-center gap-1.5 transition-all"
+                            >
+                                <Trash2 size={13} /> Clear
+                            </button>
+
                             <button
                                 onClick={handleRunCode}
                                 disabled={isExecuting}

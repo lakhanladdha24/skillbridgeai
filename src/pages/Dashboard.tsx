@@ -1,19 +1,42 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { User as UserIcon, TrendingUp, Sparkles, Code2, Award, Compass, BookOpen, Flame, CheckCircle } from 'lucide-react';
+import { User as UserIcon, TrendingUp, Sparkles, Code2, Award, Compass, BookOpen, Flame, CheckCircle, ExternalLink, ShieldCheck, Play, Video } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import AIIntelligenceWidget from '../components/AIIntelligenceWidget';
+import CertificateModal from '../components/CertificateModal';
+import { Certificate } from '../types/certificate';
 
 const Dashboard: React.FC = () => {
     const { user, isLoading } = useAuth();
     const navigate = useNavigate();
+
+    const [certificates, setCertificates] = useState<Certificate[]>([]);
+    const [selectedCert, setSelectedCert] = useState<Certificate | null>(null);
 
     useEffect(() => {
         if (!isLoading && !user) {
             navigate('/sign-in');
         }
     }, [user, isLoading, navigate]);
+
+    useEffect(() => {
+        if (user) {
+            fetchCertificates(user.id);
+        }
+    }, [user]);
+
+    const fetchCertificates = async (userId: string) => {
+        try {
+            const res = await fetch(`/api/certificates?userId=${encodeURIComponent(userId)}`);
+            const data = await res.json();
+            if (data.success && data.certificates) {
+                setCertificates(data.certificates);
+            }
+        } catch (e) {
+            console.error('Error fetching user certificates:', e);
+        }
+    };
 
     if (isLoading || !user) {
         return (
@@ -32,9 +55,9 @@ const Dashboard: React.FC = () => {
     ];
 
     return (
-        <div className="max-w-7xl mx-auto pt-10 px-4 md:px-8 pb-20">
+        <div className="max-w-7xl mx-auto pt-10 px-4 md:px-8 pb-20 space-y-10">
             {/* Top User Profile Header */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-10 p-8 glass-card rounded-3xl border border-white/10">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8 p-8 glass-card rounded-3xl border border-white/10">
                 <div className="flex flex-col md:flex-row items-center gap-6">
                     <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary via-secondary to-accent p-1">
                         <div className="w-full h-full rounded-full bg-gray-950 flex items-center justify-center overflow-hidden">
@@ -51,7 +74,7 @@ const Dashboard: React.FC = () => {
                             Welcome back, {(user.name || user.email || 'Developer').split(' ')[0]}! 👋
                         </h1>
                         <p className="text-gray-400 text-sm font-medium">
-                            AI-Powered Learning & Career Operating System
+                            AI-Powered Learning & Certificate Operating System
                         </p>
                     </div>
                 </div>
@@ -59,28 +82,123 @@ const Dashboard: React.FC = () => {
                 {/* Top Quick Actions */}
                 <div className="flex flex-wrap items-center gap-3">
                     <button
-                        onClick={() => navigate('/skill-test')}
+                        onClick={() => navigate('/career-path')}
                         className="px-5 py-2.5 bg-primary text-black font-black text-xs rounded-xl shadow-lg hover:scale-105 transition-all flex items-center gap-2"
                     >
-                        <Award size={16} /> 50-Q Assessment
+                        <Compass size={16} /> Course Roadmaps
+                    </button>
+                    <button
+                        onClick={() => navigate('/skill-test')}
+                        className="px-5 py-2.5 bg-white/10 text-white font-bold text-xs rounded-xl border border-white/10 hover:bg-white/20 transition-all flex items-center gap-2"
+                    >
+                        <Award size={16} /> Assessment
                     </button>
                     <button
                         onClick={() => navigate('/coding-lab')}
                         className="px-5 py-2.5 bg-secondary text-black font-black text-xs rounded-xl shadow-lg hover:scale-105 transition-all flex items-center gap-2"
                     >
-                        <Code2 size={16} /> Coding Platform
-                    </button>
-                    <button
-                        onClick={() => navigate('/career-path')}
-                        className="px-5 py-2.5 bg-white/10 text-white font-bold text-xs rounded-xl border border-white/10 hover:bg-white/20 transition-all flex items-center gap-2"
-                    >
-                        <Compass size={16} /> Dynamic Roadmap
+                        <Code2 size={16} /> Coding Lab
                     </button>
                 </div>
             </div>
 
+            {/* CONTINUE LEARNING SYSTEM */}
+            <div className="glass-card p-6 rounded-3xl border border-primary/30 bg-gradient-to-r from-primary/10 via-secondary/10 to-transparent flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/20 text-primary flex items-center justify-center flex-shrink-0 font-bold border border-primary/30">
+                        <Video size={24} />
+                    </div>
+                    <div>
+                        <span className="text-[10px] font-mono font-bold text-primary uppercase tracking-widest px-2.5 py-0.5 rounded bg-primary/10 border border-primary/20">
+                            CONTINUE LEARNING
+                        </span>
+                        <h3 className="text-lg font-bold text-white mt-1">
+                            🎬 Machine Learning — Linear & Logistic Regression
+                        </h3>
+                        <p className="text-xs text-gray-400">
+                            Watch progress: 68% • Next required topic queued
+                        </p>
+                    </div>
+                </div>
+
+                <button
+                    onClick={() => navigate('/career-path')}
+                    className="w-full md:w-auto px-6 py-3 bg-primary text-black font-black text-xs rounded-xl shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                >
+                    <Play size={14} fill="black" /> Continue Watching
+                </button>
+            </div>
+
+            {/* MY CERTIFICATES SECTION */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
+                        <Award className="text-amber-400" /> My Earned Certificates
+                    </h2>
+                    <span className="text-xs font-mono text-gray-400">
+                        {certificates.length} Verified Credential{certificates.length === 1 ? '' : 's'}
+                    </span>
+                </div>
+
+                {certificates.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {certificates.map((cert) => (
+                            <div
+                                key={cert.certificateId}
+                                className="glass-card p-6 rounded-3xl border border-amber-400/30 bg-gray-950/60 shadow-xl space-y-4 flex flex-col justify-between"
+                            >
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-start">
+                                        <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                            <ShieldCheck size={12} /> VERIFIED
+                                        </span>
+                                        <span className="text-[10px] font-mono text-amber-400 font-bold">
+                                            {cert.certificateId}
+                                        </span>
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white tracking-wide">{cert.courseName}</h3>
+                                    <p className="text-xs text-gray-400 font-mono">Completed on {cert.completionDate}</p>
+                                </div>
+
+                                <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                                    <button
+                                        onClick={() => setSelectedCert(cert)}
+                                        className="flex-1 py-2 bg-primary text-black font-black text-xs rounded-xl hover:bg-primary/90 transition-all text-center"
+                                    >
+                                        View Certificate
+                                    </button>
+                                    <button
+                                        onClick={() => navigate(`/verify/${cert.certificateId}`)}
+                                        className="p-2 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all"
+                                        title="Verify Certificate"
+                                    >
+                                        <ExternalLink size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="glass-card p-8 rounded-3xl border border-white/10 text-center space-y-3">
+                        <div className="w-12 h-12 rounded-full bg-amber-400/10 text-amber-400 flex items-center justify-center mx-auto">
+                            <Award size={28} />
+                        </div>
+                        <h3 className="text-lg font-bold text-white">No Certificates Earned Yet</h3>
+                        <p className="text-xs text-gray-400 max-w-md mx-auto">
+                            Complete all YouTube video topics in a course roadmap to automatically generate your official Skill Bridge AI Certificate.
+                        </p>
+                        <button
+                            onClick={() => navigate('/career-path')}
+                            className="px-5 py-2.5 bg-primary text-black font-black text-xs rounded-xl shadow-lg hover:scale-105 transition-all inline-flex items-center gap-2"
+                        >
+                            <Compass size={16} /> Explore Courses & Earn Certificate
+                        </button>
+                    </div>
+                )}
+            </div>
+
             {/* V2 Analytics Overview Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="glass-card p-6 rounded-2xl border border-white/10 text-center">
                     <div className="text-3xl font-black text-primary mb-1">78%</div>
                     <div className="text-xs text-gray-400 uppercase tracking-wider font-bold">Overall Skill Index</div>
@@ -104,7 +222,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* V3 AI/ML Intelligence Layer */}
-            <div className="mb-12">
+            <div>
                 <AIIntelligenceWidget />
             </div>
 
@@ -162,6 +280,14 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Certificate View Modal */}
+            {selectedCert && (
+                <CertificateModal
+                    certificate={selectedCert}
+                    onClose={() => setSelectedCert(null)}
+                />
+            )}
         </div>
     );
 };

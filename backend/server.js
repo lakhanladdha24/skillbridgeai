@@ -16,6 +16,8 @@ import Roadmap from './models/Roadmap.js';
 import { analyzeAssessmentResult } from './services/assessmentEngine.js';
 import { executeCode } from './services/codeExecutor.js';
 import { getStudyMaterialForTopic, rankVideoResources } from './services/ragKnowledgeService.js';
+import { searchYouTubeCourseVideos } from './services/youtubeEngine.js';
+import { checkCourseCompletion, updateVideoProgress, getCourseProgress, generateCertificateForUser, getCertificateById, getUserCertificates } from './services/certificateEngine.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -339,7 +341,7 @@ app.get('/api/videos/recommend', async (req, res) => {
 app.post('/api/roadmap/search', async (req, res) => {
     try {
         const { query } = req.body;
-        const result = await searchRoadmap(query || 'AI Engineer');
+        const result = await searchRoadmap(query || 'Frontend Developer');
         res.json(result);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -349,74 +351,238 @@ app.post('/api/roadmap/search', async (req, res) => {
 app.post('/api/roadmap/generate', async (req, res) => {
     try {
         const { goal, currentSkills, studyTimeDaily } = req.body;
-        
-        // AI Roadmap generation prompt or fallback template
-        const phases = [
-            {
-                phaseId: 'p1',
-                title: 'Phase 1 — Foundations & Core Concepts',
-                description: `Master fundamental building blocks for ${goal || 'your career goal'}.`,
-                topics: [
+        const target = goal || 'Frontend Developer';
+        const result = await searchRoadmap(target);
+        if (studyTimeDaily) {
+            result.studyTimeDaily = studyTimeDaily;
+        }
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- LEARN WITH AI (ROADMAP.SH AI TUTOR API) ---
+app.post('/api/ai/learn-topic', async (req, res) => {
+    try {
+        const { topicTitle, roadmapGoal, mode, userQuestion, history } = req.body;
+        const topic = (topicTitle || 'Software Engineering Core').trim();
+        const goal = (roadmapGoal || 'Software Development').trim();
+        const selectedMode = mode || 'explain';
+
+        if (groq) {
+            // Mode 1: EXPLAIN (ELI5, Technical, Architecture, Code)
+            if (selectedMode === 'explain') {
+                const prompt = `You are a world-class computer science educator like roadmap.sh.
+Explain the topic: "${topic}" in the context of "${goal}".
+Return strict JSON with this exact schema:
+{
+  "topic": "${topic}",
+  "eli5": "Simple real-life metaphor or analogy that explains the concept to a beginner in 2-3 clear sentences.",
+  "technical": "In-depth technical explanation covering underlying mechanics, runtime behavior, and memory/data flow.",
+  "architecture": "How production systems and top companies (Google, Meta, Netflix) implement and scale this concept.",
+  "codeSnippet": "// Production code example showcasing ${topic}\\nfunction example() { ... }",
+  "bestPractices": [
+    "Rule 1 for high performance or reliability",
+    "Rule 2 for maintainability",
+    "Common pitfall to avoid"
+  ]
+}
+Return ONLY pure JSON without markdown backticks.`;
+
+                try {
+                    const completion = await groq.chat.completions.create({
+                        messages: [{ role: 'user', content: prompt }],
+                        model: 'groq/compound',
+                        response_format: { type: 'json_object' },
+                        temperature: 0.3
+                    });
+                    const raw = completion.choices[0]?.message?.content;
+                    if (raw) {
+                        return res.json(JSON.parse(raw));
+                    }
+                } catch (e) {
+                    console.warn("Groq explain error:", e.message);
+                }
+            }
+
+            // Mode 2: QUIZ (3 interactive multiple-choice questions)
+            if (selectedMode === 'quiz') {
+                const prompt = `You are an expert technical interviewer from roadmap.sh.
+Generate 3 challenging multiple-choice questions testing comprehension of: "${topic}".
+Return strict JSON with this schema:
+{
+  "topic": "${topic}",
+  "questions": [
+    {
+      "id": 1,
+      "question": "Question text testing practical understanding?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctIndex": 0,
+      "explanation": "Why this answer is correct based on CS fundamentals."
+    },
+    {
+      "id": 2,
+      "question": "Second practical scenario question?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctIndex": 1,
+      "explanation": "Clear explanation of the correct option."
+    },
+    {
+      "id": 3,
+      "question": "Third question on performance or edge cases?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctIndex": 2,
+      "explanation": "Clear explanation of the correct option."
+    }
+  ]
+}
+Return ONLY pure JSON without markdown backticks.`;
+
+                try {
+                    const completion = await groq.chat.completions.create({
+                        messages: [{ role: 'user', content: prompt }],
+                        model: 'groq/compound',
+                        response_format: { type: 'json_object' },
+                        temperature: 0.3
+                    });
+                    const raw = completion.choices[0]?.message?.content;
+                    if (raw) {
+                        return res.json(JSON.parse(raw));
+                    }
+                } catch (e) {
+                    console.warn("Groq quiz error:", e.message);
+                }
+            }
+
+            // Mode 3: PROJECT CHALLENGE
+            if (selectedMode === 'project') {
+                const prompt = `Generate a realistic hands-on engineering project challenge for topic: "${topic}".
+Return strict JSON with schema:
+{
+  "title": "Project Title",
+  "difficulty": "Intermediate",
+  "estimatedTime": "3-5 Hours",
+  "objective": "Clear description of what to build.",
+  "userStories": ["User can do X", "System handles Y", "Data is persisted to Z"],
+  "starterFiles": ["index.js", "README.md"],
+  "bonusChallenge": "Stretch goal for advanced learners"
+}
+Return pure JSON only.`;
+
+                try {
+                    const completion = await groq.chat.completions.create({
+                        messages: [{ role: 'user', content: prompt }],
+                        model: 'groq/compound',
+                        response_format: { type: 'json_object' },
+                        temperature: 0.3
+                    });
+                    const raw = completion.choices[0]?.message?.content;
+                    if (raw) {
+                        return res.json(JSON.parse(raw));
+                    }
+                } catch (e) {
+                    console.warn("Groq project error:", e.message);
+                }
+            }
+
+            // Mode 4: INTERACTIVE CHAT / DOUBT SOLVING
+            if (selectedMode === 'chat') {
+                const userMsg = userQuestion || 'Can you summarize the most important parts of this topic?';
+                const systemPrompt = `You are the friendly, expert AI Tutor from roadmap.sh helping a developer learn "${topic}" in the "${goal}" roadmap. Be concise, practical, and provide concrete code snippets where applicable. Format nicely in Markdown.`;
+
+                const messages = [
+                    { role: 'system', content: systemPrompt },
+                    ...(Array.isArray(history) ? history.slice(-4) : []),
+                    { role: 'user', content: userMsg }
+                ];
+
+                try {
+                    const completion = await groq.chat.completions.create({
+                        messages,
+                        model: 'groq/compound',
+                        temperature: 0.5
+                    });
+                    const reply = completion.choices[0]?.message?.content;
+                    return res.json({ reply });
+                } catch (e) {
+                    console.warn("Groq chat error:", e.message);
+                }
+            }
+        }
+
+        // Offline / Fallback Responses
+        if (selectedMode === 'quiz') {
+            return res.json({
+                topic,
+                questions: [
                     {
-                        topicId: 't1',
-                        title: 'Python Fundamentals & OOP',
-                        description: 'Variables, loops, functions, OOP classes and memory management.',
-                        difficulty: 'Beginner',
-                        estimatedHours: 15,
-                        completed: false,
-                        prerequisites: []
+                        id: 1,
+                        question: `What is the primary role of ${topic} in production applications?`,
+                        options: [
+                            `Establishing scalable baseline patterns and predictable execution`,
+                            `Replacing all database operations`,
+                            `Decreasing network bandwidth to zero`,
+                            `Automating hardware manufacturing`
+                        ],
+                        correctIndex: 0,
+                        explanation: `${topic} provides the computational structures and contracts required to build predictable, maintainable software.`
                     },
                     {
-                        topicId: 't2',
-                        title: 'Data Structures & Algorithms (DSA)',
-                        description: 'Arrays, Hash Tables, Trees, Graphs, and Algorithmic complexity.',
-                        difficulty: 'Intermediate',
-                        estimatedHours: 25,
-                        completed: false,
-                        prerequisites: ['t1']
-                    }
-                ]
-            },
-            {
-                phaseId: 'p2',
-                title: 'Phase 2 — Core Specialization & ML Foundations',
-                description: 'Deep dive into specialized math, statistics, and machine learning pipelines.',
-                topics: [
+                        id: 2,
+                        question: `Which of the following is considered a best practice when working with ${topic}?`,
+                        options: [
+                            `Ignoring error states and uncaught exceptions`,
+                            `Modular design, separation of concerns, and clear contracts`,
+                            `Hardcoding sensitive credentials in source code`,
+                            `Avoiding automated unit tests`
+                        ],
+                        correctIndex: 1,
+                        explanation: `Separation of concerns and modularity are foundational best practices.`
+                    },
                     {
-                        topicId: 't3',
-                        title: 'Machine Learning & AI Foundations',
-                        description: 'Supervised vs Unsupervised learning, Scikit-Learn, and evaluation metrics.',
-                        difficulty: 'Intermediate',
-                        estimatedHours: 30,
-                        completed: false,
-                        prerequisites: ['t2']
+                        id: 3,
+                        question: `How does mastering ${topic} improve overall system reliability?`,
+                        options: [
+                            `By eliminating the need for server operating systems`,
+                            `By reducing cognitive overhead, catching edge cases, and adhering to standard patterns`,
+                            `By converting all code directly into quantum circuits`,
+                            `It has no effect on reliability`
+                        ],
+                        correctIndex: 1,
+                        explanation: `Adhering to proven industry patterns prevents regressions and unhandled edge cases.`
                     }
                 ]
-            },
-            {
-                phaseId: 'p3',
-                title: 'Phase 3 — Professional Projects & Interview Readiness',
-                description: 'Build real-world production projects and hone interview problem solving.',
-                topics: [
-                    {
-                        topicId: 't4',
-                        title: 'Generative AI & LLM Engineering',
-                        description: 'Transformers, RAG pipelines, Prompt Engineering, and model deployment.',
-                        difficulty: 'Advanced',
-                        estimatedHours: 40,
-                        completed: false,
-                        prerequisites: ['t3']
-                    }
-                ]
-            }
-        ];
+            });
+        }
 
-        res.json({
-            goal: goal || 'Machine Learning Engineer',
-            estimatedDuration: '4 to 6 months',
-            studyTimeDaily: studyTimeDaily || '2 hours/day',
-            completionPercentage: 0,
-            phases
+        if (selectedMode === 'project') {
+            return res.json({
+                title: `${topic} Production Showcase Module`,
+                difficulty: "Intermediate",
+                estimatedTime: "4 Hours",
+                objective: `Build a production-grade module or service implementing core ${topic} features.`,
+                userStories: [
+                    `User can configure and run ${topic} operations with validation`,
+                    `System logs operations and gracefully catches input anomalies`,
+                    `Code includes unit tests verifying both happy and error paths`
+                ],
+                starterFiles: ["app.js", "service.js", "tests.test.js"],
+                bonusChallenge: "Add benchmark metrics or persistent caching"
+            });
+        }
+
+        return res.json({
+            topic,
+            eli5: `Think of ${topic} like the foundation and plumbing of a house: you might not see it every day, but without it, nothing in the building can function reliably.`,
+            technical: `${topic} encapsulates core architectural abstractions and protocols. It manages state transitions, ensures data integrity, and adheres to strict time/space complexity guarantees.`,
+            architecture: `In high-scale enterprise systems, ${topic} is isolated behind clean interfaces to ensure decoupled scalability, predictable failovers, and seamless testing.`,
+            codeSnippet: `// Production Code Pattern for ${topic}\nclass ${topic.replace(/[^a-zA-Z0-9]/g, '')}Handler {\n    constructor(options = {}) {\n        this.options = options;\n    }\n    \n    async execute(payload) {\n        if (!payload) throw new Error("Payload is required");\n        return { success: true, processedAt: Date.now() };\n    }\n}`,
+            bestPractices: [
+                `Always validate inputs and handle edge cases explicitly.`,
+                `Keep modules focused and single-purpose (Single Responsibility Principle).`,
+                `Write integration tests for critical business paths.`
+            ]
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -464,6 +630,94 @@ app.get('/api/ml/intelligence-summary', async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// --- YOUTUBE COURSE SEARCH & RESOURCE INTELLIGENCE ---
+app.get('/api/youtube/search', async (req, res) => {
+    try {
+        const { courseName, topicTitle, level } = req.query;
+        const videos = await searchYouTubeCourseVideos({ courseName, topicTitle, level });
+        res.json({ success: true, videos });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- VIDEO WATCH PROGRESS ENGINE ---
+app.post('/api/videos/progress', async (req, res) => {
+    try {
+        const { userId, courseId, topicId, videoId, videoTitle, watchProgress, durationSeconds } = req.body;
+        const record = await updateVideoProgress({ userId, courseId, topicId, videoId, videoTitle, watchProgress, durationSeconds });
+        res.json({ success: true, record });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/videos/progress', async (req, res) => {
+    try {
+        const { userId, courseId } = req.query;
+        const progressList = await getCourseProgress(userId, courseId);
+        res.json({ success: true, progress: progressList });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- COURSE COMPLETION ENGINE ---
+app.post('/api/courses/completion', async (req, res) => {
+    try {
+        const { userId, courseId, totalTopics } = req.body;
+        const completionStatus = await checkCourseCompletion(userId, courseId, totalTopics);
+        res.json({ success: true, ...completionStatus });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- AUTOMATIC CERTIFICATE GENERATION & VERIFICATION ---
+app.post('/api/certificates/generate', async (req, res) => {
+    try {
+        const { userId, userName, courseId, courseName } = req.body;
+        const certificate = await generateCertificateForUser({ userId, userName, courseId, courseName });
+        res.json({ success: true, certificate });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/certificates', async (req, res) => {
+    try {
+        const { userId } = req.query;
+        const certificates = await getUserCertificates(userId);
+        res.json({ success: true, certificates });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/certificates/:certificateId', async (req, res) => {
+    try {
+        const { certificateId } = req.params;
+        const certificate = await getCertificateById(certificateId);
+        if (!certificate) return res.status(404).json({ error: 'Certificate not found' });
+        res.json({ success: true, certificate });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/certificates/verify/:certificateId', async (req, res) => {
+    try {
+        const { certificateId } = req.params;
+        const certificate = await getCertificateById(certificateId);
+        if (!certificate) {
+            return res.status(404).json({ valid: false, error: 'Certificate ID not found' });
+        }
+        res.json({ valid: true, certificate });
+    } catch (err) {
+        res.status(500).json({ valid: false, error: err.message });
     }
 });
 

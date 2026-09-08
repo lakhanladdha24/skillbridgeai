@@ -58,12 +58,68 @@ export const leetcodeProblems: CodingProblem[] = [
             "-10^3 <= y_true[i], y_pred[i] <= 10^3"
         ],
         starterCode: {
-            python: `import sys, json\n\ndef calculate_mse(y_true, y_pred):\n    n = len(y_true)\n    mse = sum((yt - yp) ** 2 for yt, yp in zip(y_true, y_pred)) / n\n    return round(mse, 2)\n\ninput_data = sys.stdin.read().strip()\nif input_data:\n    data = json.loads(input_data)\n    print(f"{calculate_mse(data['y_true'], data['y_pred']):.2f}")`,
-            javascript: `const fs = require('fs');\nfunction calculateMSE(y_true, y_pred) {\n    const n = y_true.length;\n    const sum = y_true.reduce((acc, val, i) => acc + Math.pow(val - y_pred[i], 2), 0);\n    return (sum / n).toFixed(2);\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(calculateMSE(data.y_true, data.y_pred));\n}`,
-            typescript: `const fs = require('fs');\nfunction calculateMSE(y_true: number[], y_pred: number[]): string {\n    const n = y_true.length;\n    const sum = y_true.reduce((acc, val, i) => acc + Math.pow(val - y_pred[i], 2), 0);\n    return (sum / n).toFixed(2);\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(calculateMSE(data.y_true, data.y_pred));\n}`,
-            cpp: `#include <iostream>\nint main() { std::cout << "0.38"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("0.38"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("0.38"); } }`
+            python: `import sys, json
+
+def calculate_mse(y_true, y_pred):
+    # TODO: Write your code here to calculate MSE
+    # Return the MSE rounded to 2 decimal places
+    pass
+
+input_data = sys.stdin.read().strip()
+if input_data:
+    data = json.loads(input_data)
+    res = calculate_mse(data['y_true'], data['y_pred'])
+    if res is not None:
+        print(f"{res:.2f}")`,
+            javascript: `const fs = require('fs');
+
+function calculateMSE(y_true, y_pred) {
+    // TODO: Write your code here to calculate MSE
+    // Return the MSE formatted to 2 decimal places
+    
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = calculateMSE(data.y_true, data.y_pred);
+    if (res !== undefined) console.log(res);
+}`,
+            typescript: `const fs = require('fs');
+
+function calculateMSE(y_true: number[], y_pred: number[]): string | number {
+    // TODO: Write your code here to calculate MSE
+    return "";
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = calculateMSE(data.y_true, data.y_pred);
+    if (res !== undefined) console.log(res);
+}`,
+            cpp: `#include <iostream>
+#include <vector>
+
+// TODO: Write your code here
+int main() {
+    // Read input and output the calculated MSE rounded to 2 decimal places
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+// TODO: Write your code here
+int main() {
+    return 0;
+}`,
+            java: `import java.util.*;
+
+public class Solution {
+    // TODO: Write your code here
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+    }
+}`
         },
         testCases: [
             { input: `{"y_true": [3.0, -0.5, 2.0, 7.0], "y_pred": [2.5, 0.0, 2.0, 8.0]}`, output: `0.38` }
@@ -95,12 +151,64 @@ export const leetcodeProblems: CodingProblem[] = [
             "1 <= logits.length <= 10^3"
         ],
         starterCode: {
-            python: `import sys, json, math\n\ndef sigmoid_classify(logits):\n    res = []\n    for z in logits:\n        p = 1 / (1 + math.exp(-z))\n        res.append(1 if p >= 0.5 else 0)\n    return res\n\ninput_data = sys.stdin.read().strip()\nif input_data:\n    data = json.loads(input_data)\n    print(json.dumps(sigmoid_classify(data['logits'])))`,
-            javascript: `const fs = require('fs');\nfunction sigmoidClassify(logits) {\n    return logits.map(z => (1 / (1 + Math.exp(-z))) >= 0.5 ? 1 : 0);\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(JSON.stringify(sigmoidClassify(data.logits)));\n}`,
-            typescript: `const fs = require('fs');\nfunction sigmoidClassify(logits: number[]): number[] {\n    return logits.map(z => (1 / (1 + Math.exp(-z))) >= 0.5 ? 1 : 0);\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(JSON.stringify(sigmoidClassify(data.logits)));\n}`,
-            cpp: `#include <iostream>\nint main() { std::cout << "[1, 0, 1, 1]"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("[1, 0, 1, 1]"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("[1, 0, 1, 1]"); } }`
+            python: `import sys, json, math
+
+def sigmoid_classify(logits):
+    # TODO: Write your code here
+    # Return array of predicted classes (0 or 1) based on sigmoid(z) >= 0.5
+    pass
+
+input_data = sys.stdin.read().strip()
+if input_data:
+    data = json.loads(input_data)
+    res = sigmoid_classify(data['logits'])
+    if res is not None:
+        print(json.dumps(res))`,
+            javascript: `const fs = require('fs');
+
+function sigmoidClassify(logits) {
+    // TODO: Write your code here
+    // Return array of predicted classes (0 or 1) where sigmoid(z) >= 0.5
+    
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = sigmoidClassify(data.logits);
+    if (res !== undefined) console.log(JSON.stringify(res));
+}`,
+            typescript: `const fs = require('fs');
+
+function sigmoidClassify(logits: number[]): number[] {
+    // TODO: Write your code here
+    return [];
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = sigmoidClassify(data.logits);
+    if (res !== undefined) console.log(JSON.stringify(res));
+}`,
+            cpp: `#include <iostream>
+#include <vector>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        // TODO: Write your code here
+    }
+}`
         },
         testCases: [
             { input: `{"logits": [2.5, -1.2, 0.0, 0.8]}`, output: `[1, 0, 1, 1]` }
@@ -132,12 +240,63 @@ export const leetcodeProblems: CodingProblem[] = [
             "1 <= centroids.length <= 10"
         ],
         starterCode: {
-            python: `import sys, json\n\ndef assign_clusters(points, centroids):\n    assignments = []\n    for p in points:\n        min_dist = float('inf')\n        best_c = 0\n        for idx, c in enumerate(centroids):\n            dist = (p[0]-c[0])**2 + (p[1]-c[1])**2\n            if dist < min_dist:\n                min_dist = dist\n                best_c = idx\n        assignments.append(best_c)\n    return assignments\n\ninput_data = sys.stdin.read().strip()\nif input_data:\n    data = json.loads(input_data)\n    print(json.dumps(assign_clusters(data['points'], data['centroids'])))`,
-            javascript: `const fs = require('fs');\nfunction assignClusters(points, centroids) {\n    return points.map(p => {\n        let minDist = Infinity;\n        let bestC = 0;\n        centroids.forEach((c, idx) => {\n            const dist = Math.pow(p[0]-c[0], 2) + Math.pow(p[1]-c[1], 2);\n            if (dist < minDist) {\n                minDist = dist;\n                bestC = idx;\n            }\n        });\n        return bestC;\n    });\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(JSON.stringify(assignClusters(data.points, data.centroids)));\n}`,
-            typescript: `const fs = require('fs');\nfunction assignClusters(points: number[][], centroids: number[][]): number[] {\n    return points.map(p => {\n        let minDist = Infinity;\n        let bestC = 0;\n        centroids.forEach((c, idx) => {\n            const dist = Math.pow(p[0]-c[0], 2) + Math.pow(p[1]-c[1], 2);\n            if (dist < minDist) {\n                minDist = dist;\n                bestC = idx;\n            }\n        });\n        return bestC;\n    });\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(JSON.stringify(assignClusters(data.points, data.centroids)));\n}`,
-            cpp: `#include <iostream>\nint main() { std::cout << "[0, 0, 1]"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("[0, 0, 1]"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("[0, 0, 1]"); } }`
+            python: `import sys, json
+
+def assign_clusters(points, centroids):
+    # TODO: Write your code here
+    # Assign each point to its nearest centroid based on squared distance
+    pass
+
+input_data = sys.stdin.read().strip()
+if input_data:
+    data = json.loads(input_data)
+    res = assign_clusters(data['points'], data['centroids'])
+    if res is not None:
+        print(json.dumps(res))`,
+            javascript: `const fs = require('fs');
+
+function assignClusters(points, centroids) {
+    // TODO: Write your code here
+    // Assign each point to nearest centroid index
+    
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = assignClusters(data.points, data.centroids);
+    if (res !== undefined) console.log(JSON.stringify(res));
+}`,
+            typescript: `const fs = require('fs');
+
+function assignClusters(points: number[][], centroids: number[][]): number[] {
+    // TODO: Write your code here
+    return [];
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = assignClusters(data.points, data.centroids);
+    if (res !== undefined) console.log(JSON.stringify(res));
+}`,
+            cpp: `#include <iostream>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        // TODO: Write your code here
+    }
+}`
         },
         testCases: [
             { input: `{"points": [[1, 2], [1, 4], [5, 8]], "centroids": [[0, 0], [5, 5]]}`, output: `[0, 0, 1]` }
@@ -173,12 +332,63 @@ export const leetcodeProblems: CodingProblem[] = [
             "Only one valid answer exists."
         ],
         starterCode: {
-            python: `import sys, json\ndef two_sum(nums, target):\n    hashmap = {}\n    for i, num in enumerate(nums):\n        diff = target - num\n        if diff in hashmap:\n            return [hashmap[diff], i]\n        hashmap[num] = i\n    return []\ninput_data = sys.stdin.read().strip()\nif input_data:\n    data = json.loads(input_data)\n    print(json.dumps(two_sum(data['nums'], data['target'])))`,
-            javascript: `const fs = require('fs');\nfunction twoSum(nums, target) {\n    const map = new Map();\n    for (let i = 0; i < nums.length; i++) {\n        const diff = target - nums[i];\n        if (map.has(diff)) return [map.get(diff), i];\n        map.set(nums[i], i);\n    }\n    return [];\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(JSON.stringify(twoSum(data.nums, data.target)));\n}`,
-            typescript: `const fs = require('fs');\nfunction twoSum(nums: number[], target: number): number[] {\n    const map = new Map<number, number>();\n    for (let i = 0; i < nums.length; i++) {\n        const diff = target - nums[i];\n        if (map.has(diff)) return [map.get(diff)!, i];\n        map.set(nums[i], i);\n    }\n    return [];\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(JSON.stringify(twoSum(data.nums, data.target)));\n}`,
-            cpp: `#include <iostream>\nint main() { std::cout << "[0, 1]"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("[0, 1]"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("[0, 1]"); } }`
+            python: `import sys, json
+
+def two_sum(nums, target):
+    # TODO: Write your code here
+    # Return indices [index1, index2] that add up to target
+    pass
+
+input_data = sys.stdin.read().strip()
+if input_data:
+    data = json.loads(input_data)
+    res = two_sum(data['nums'], data['target'])
+    if res is not None:
+        print(json.dumps(res))`,
+            javascript: `const fs = require('fs');
+
+function twoSum(nums, target) {
+    // TODO: Write your code here
+    // Return indices [i, j] adding to target
+    
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = twoSum(data.nums, data.target);
+    if (res !== undefined) console.log(JSON.stringify(res));
+}`,
+            typescript: `const fs = require('fs');
+
+function twoSum(nums: number[], target: number): number[] {
+    // TODO: Write your code here
+    return [];
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = twoSum(data.nums, data.target);
+    if (res !== undefined) console.log(JSON.stringify(res));
+}`,
+            cpp: `#include <iostream>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        // TODO: Write your code here
+    }
+}`
         },
         testCases: [
             { input: `{"nums": [2,7,11,15], "target": 9}`, output: `[0, 1]` }
@@ -208,12 +418,61 @@ export const leetcodeProblems: CodingProblem[] = [
             "0 <= head.length <= 5000"
         ],
         starterCode: {
-            python: `import sys, json\ndef reverse_list(head):\n    return head[::-1]\ninput_data = sys.stdin.read().strip()\nif input_data:\n    data = json.loads(input_data)\n    print(json.dumps(reverse_list(data['head'])))`,
-            javascript: `const fs = require('fs');\nfunction reverseList(head) {\n    return head.reverse();\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(JSON.stringify(reverseList(data.head)));\n}`,
-            typescript: `const fs = require('fs');\nfunction reverseList(head: number[]): number[] {\n    return head.reverse();\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(JSON.stringify(reverseList(data.head)));\n}`,
-            cpp: `#include <iostream>\nint main() { std::cout << "[5, 4, 3, 2, 1]"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("[5, 4, 3, 2, 1]"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("[5, 4, 3, 2, 1]"); } }`
+            python: `import sys, json
+
+def reverse_list(head):
+    # TODO: Write your code here to reverse the list
+    pass
+
+input_data = sys.stdin.read().strip()
+if input_data:
+    data = json.loads(input_data)
+    res = reverse_list(data['head'])
+    if res is not None:
+        print(json.dumps(res))`,
+            javascript: `const fs = require('fs');
+
+function reverseList(head) {
+    // TODO: Write your code here to reverse the list
+    
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = reverseList(data.head);
+    if (res !== undefined) console.log(JSON.stringify(res));
+}`,
+            typescript: `const fs = require('fs');
+
+function reverseList(head: number[]): number[] {
+    // TODO: Write your code here to reverse the list
+    return [];
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = reverseList(data.head);
+    if (res !== undefined) console.log(JSON.stringify(res));
+}`,
+            cpp: `#include <iostream>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        // TODO: Write your code here
+    }
+}`
         },
         testCases: [
             { input: `{"head": [1, 2, 3, 4, 5]}`, output: `[5, 4, 3, 2, 1]` }
@@ -243,12 +502,73 @@ export const leetcodeProblems: CodingProblem[] = [
             "1 <= capacity <= 3000"
         ],
         starterCode: {
-            python: `print("LRU OK")`,
-            javascript: `console.log("LRU OK");`,
-            typescript: `console.log("LRU OK");`,
-            cpp: `#include <iostream>\nint main() { std::cout << "LRU OK"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("LRU OK"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("LRU OK"); } }`
+            python: `class LRUCache:
+    def __init__(self, capacity: int):
+        # TODO: Initialize your LRU cache data structures
+        pass
+
+    def get(self, key: int) -> int:
+        # TODO: Return value if key exists, else -1
+        pass
+
+    def put(self, key: int, value: int) -> None:
+        # TODO: Update or insert key-value pair, evicting LRU item if capacity exceeded
+        pass
+
+# Test your implementation
+print("LRU OK")`,
+            javascript: `class LRUCache {
+    constructor(capacity) {
+        // TODO: Initialize LRU Cache data structures
+    }
+
+    get(key) {
+        // TODO: Return value if exists, else -1
+    }
+
+    put(key, value) {
+        // TODO: Update or insert key-value pair, evicting LRU if full
+    }
+}
+
+// Test your implementation
+console.log("LRU OK");`,
+            typescript: `class LRUCache {
+    constructor(capacity: number) {
+        // TODO: Initialize LRU Cache
+    }
+
+    get(key: number): number {
+        // TODO: Return value if exists, else -1
+        return -1;
+    }
+
+    put(key: number, value: number): void {
+        // TODO: Update or insert key-value pair
+    }
+}
+
+console.log("LRU OK");`,
+            cpp: `#include <iostream>
+
+int main() {
+    // TODO: Write your code here
+    std::cout << "LRU OK";
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    // TODO: Write your code here
+    printf("LRU OK");
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        // TODO: Write your code here
+        System.out.println("LRU OK");
+    }
+}`
         },
         testCases: [
             { input: `capacity=2`, output: `LRU OK` }
@@ -282,12 +602,63 @@ export const leetcodeProblems: CodingProblem[] = [
             "0 <= users.length <= 10^3"
         ],
         starterCode: {
-            python: `import sys, json\ndef transform_users(users):\n    return [u['name'].upper() for u in users if u['age'] >= 18]\ninput_data = sys.stdin.read().strip()\nif input_data:\n    data = json.loads(input_data)\n    print(json.dumps(transform_users(data['users'])))`,
-            javascript: `const fs = require('fs');\nfunction transformUsers(users) {\n    return users.filter(u => u.age >= 18).map(u => u.name.toUpperCase());\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(JSON.stringify(transformUsers(data.users)));\n}`,
-            typescript: `const fs = require('fs');\nfunction transformUsers(users: {name: string, age: number}[]): string[] {\n    return users.filter(u => u.age >= 18).map(u => u.name.toUpperCase());\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(JSON.stringify(transformUsers(data.users)));\n}`,
-            cpp: `#include <iostream>\nint main() { std::cout << "[\"ALICE\", \"CHARLIE\"]"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("[\"ALICE\", \"CHARLIE\"]"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("[\"ALICE\", \"CHARLIE\"]"); } }`
+            python: `import sys, json
+
+def transform_users(users):
+    # TODO: Write your code here
+    # Filter users where age >= 18 and return uppercase names
+    pass
+
+input_data = sys.stdin.read().strip()
+if input_data:
+    data = json.loads(input_data)
+    res = transform_users(data['users'])
+    if res is not None:
+        print(json.dumps(res))`,
+            javascript: `const fs = require('fs');
+
+function transformUsers(users) {
+    // TODO: Write your code here
+    // Filter users with age >= 18 and return uppercase names
+    
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = transformUsers(data.users);
+    if (res !== undefined) console.log(JSON.stringify(res));
+}`,
+            typescript: `const fs = require('fs');
+
+function transformUsers(users: {name: string, age: number}[]): string[] {
+    // TODO: Write your code here
+    return [];
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = transformUsers(data.users);
+    if (res !== undefined) console.log(JSON.stringify(res));
+}`,
+            cpp: `#include <iostream>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        // TODO: Write your code here
+    }
+}`
         },
         testCases: [
             { input: `{"users": [{"name": "Alice", "age": 22}, {"name": "Bob", "age": 15}, {"name": "Charlie", "age": 19}]}`, output: `["ALICE", "CHARLIE"]` }
@@ -317,12 +688,42 @@ export const leetcodeProblems: CodingProblem[] = [
             "0 <= t <= 1000"
         ],
         starterCode: {
-            python: `print("Passed")`,
-            javascript: `function debounce(fn, t) {\n    let timer;\n    return function(...args) {\n        clearTimeout(timer);\n        timer = setTimeout(() => fn.apply(this, args), t);\n    };\n}\nconsole.log("Passed");`,
-            typescript: `function debounce(fn: Function, t: number) {\n    let timer: any;\n    return function(...args: any[]) {\n        clearTimeout(timer);\n        timer = setTimeout(() => fn.apply(this, args), t);\n    };\n}\nconsole.log("Passed");`,
-            cpp: `#include <iostream>\nint main() { std::cout << "Passed"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("Passed"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("Passed"); } }`
+            python: `def debounce(fn, t):
+    # TODO: Implement debounce wrapper
+    pass
+
+print("Passed")`,
+            javascript: `function debounce(fn, t) {
+    // TODO: Write your debounce implementation here
+    
+}
+
+// Verification runner
+console.log("Passed");`,
+            typescript: `function debounce(fn: Function, t: number) {
+    // TODO: Write your debounce implementation here
+    
+}
+
+console.log("Passed");`,
+            cpp: `#include <iostream>
+
+int main() {
+    // TODO: Write your code here
+    std::cout << "Passed";
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    printf("Passed");
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        System.out.println("Passed");
+    }
+}`
         },
         testCases: [
             { input: `50`, output: `Passed` }
@@ -352,12 +753,40 @@ export const leetcodeProblems: CodingProblem[] = [
             "1 <= limit <= 10"
         ],
         starterCode: {
-            python: `print("[1, 2, 3]")`,
-            javascript: `console.log("[1, 2, 3]");`,
-            typescript: `console.log("[1, 2, 3]");`,
-            cpp: `#include <iostream>\nint main() { std::cout << "[1, 2, 3]"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("[1, 2, 3]"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("[1, 2, 3]"); } }`
+            python: `def async_queue(tasks, limit):
+    # TODO: Implement async task runner with concurrency limit
+    pass
+
+print("[1, 2, 3]")`,
+            javascript: `async function runAsyncQueue(tasks, limit) {
+    // TODO: Write your async task runner here
+    
+}
+
+console.log("[1, 2, 3]");`,
+            typescript: `async function runAsyncQueue(tasks: (() => Promise<any>)[], limit: number): Promise<any[]> {
+    // TODO: Write your async task runner here
+    return [];
+}
+
+console.log("[1, 2, 3]");`,
+            cpp: `#include <iostream>
+
+int main() {
+    std::cout << "[1, 2, 3]";
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    printf("[1, 2, 3]");
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        System.out.println("[1, 2, 3]");
+    }
+}`
         },
         testCases: [
             { input: `limit=2`, output: `[1, 2, 3]` }
@@ -391,12 +820,60 @@ export const leetcodeProblems: CodingProblem[] = [
             "1 <= s.length <= 2 * 10^5"
         ],
         starterCode: {
-            python: `import sys\ndef is_palindrome(s):\n    cleaned = [c.lower() for c in s if c.isalnum()]\n    return cleaned == cleaned[::-1]\ninput_data = sys.stdin.read().strip()\nif input_data:\n    print("true" if is_palindrome(input_data) else "false")`,
-            javascript: `const fs = require('fs');\nfunction isPalindrome(s) {\n    const cleaned = s.toLowerCase().replace(/[^a-z0-9]/g, '');\n    return cleaned === cleaned.split('').reverse().join('');\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) console.log(isPalindrome(input) ? "true" : "false");`,
-            typescript: `const fs = require('fs');\nfunction isPalindrome(s: string): boolean {\n    const cleaned = s.toLowerCase().replace(/[^a-z0-9]/g, '');\n    return cleaned === cleaned.split('').reverse().join('');\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) console.log(isPalindrome(input) ? "true" : "false");`,
-            cpp: `#include <iostream>\nint main() { std::cout << "true"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("true"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("true"); } }`
+            python: `import sys
+
+def is_palindrome(s):
+    # TODO: Write your code here
+    # Return True if palindrome, False otherwise
+    pass
+
+input_data = sys.stdin.read().strip()
+if input_data:
+    res = is_palindrome(input_data)
+    if res is not None:
+        print("true" if res else "false")`,
+            javascript: `const fs = require('fs');
+
+function isPalindrome(s) {
+    // TODO: Write your code here
+    // Return true if s is palindrome, false otherwise
+    
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const res = isPalindrome(input);
+    if (res !== undefined) console.log(res ? "true" : "false");
+}`,
+            typescript: `const fs = require('fs');
+
+function isPalindrome(s: string): boolean {
+    // TODO: Write your code here
+    return false;
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const res = isPalindrome(input);
+    if (res !== undefined) console.log(res ? "true" : "false");
+}`,
+            cpp: `#include <iostream>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        // TODO: Write your code here
+    }
+}`
         },
         testCases: [
             { input: `A man, a plan, a canal: Panama`, output: `true` }
@@ -426,12 +903,63 @@ export const leetcodeProblems: CodingProblem[] = [
             "1 <= nums.length <= 10^5"
         ],
         starterCode: {
-            python: `import sys, json, collections\ndef top_k_frequent(nums, k):\n    count = collections.Counter(nums)\n    return [item[0] for item in count.most_common(k)]\ninput_data = sys.stdin.read().strip()\nif input_data:\n    data = json.loads(input_data)\n    print(json.dumps(top_k_frequent(data['nums'], data['k'])))`,
-            javascript: `const fs = require('fs');\nfunction topKFrequent(nums, k) {\n    const map = {};\n    nums.forEach(n => map[n] = (map[n] || 0) + 1);\n    return Object.keys(map).map(Number).sort((a, b) => map[b] - map[a]).slice(0, k);\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(JSON.stringify(topKFrequent(data.nums, data.k)));\n}`,
-            typescript: `const fs = require('fs');\nfunction topKFrequent(nums: number[], k: number): number[] {\n    const map: Record<number, number> = {};\n    nums.forEach(n => map[n] = (map[n] || 0) + 1);\n    return Object.keys(map).map(Number).sort((a, b) => map[b] - map[a]).slice(0, k);\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(JSON.stringify(topKFrequent(data.nums, data.k)));\n}`,
-            cpp: `#include <iostream>\nint main() { std::cout << "[1, 2]"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("[1, 2]"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("[1, 2]"); } }`
+            python: `import sys, json
+
+def top_k_frequent(nums, k):
+    # TODO: Write your code here
+    # Return the k most frequent elements
+    pass
+
+input_data = sys.stdin.read().strip()
+if input_data:
+    data = json.loads(input_data)
+    res = top_k_frequent(data['nums'], data['k'])
+    if res is not None:
+        print(json.dumps(res))`,
+            javascript: `const fs = require('fs');
+
+function topKFrequent(nums, k) {
+    // TODO: Write your code here
+    // Return array of k most frequent elements
+    
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = topKFrequent(data.nums, data.k);
+    if (res !== undefined) console.log(JSON.stringify(res));
+}`,
+            typescript: `const fs = require('fs');
+
+function topKFrequent(nums: number[], k: number): number[] {
+    // TODO: Write your code here
+    return [];
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = topKFrequent(data.nums, data.k);
+    if (res !== undefined) console.log(JSON.stringify(res));
+}`,
+            cpp: `#include <iostream>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        // TODO: Write your code here
+    }
+}`
         },
         testCases: [
             { input: `{"nums": [1,1,1,2,2,3], "k": 2}`, output: `[1, 2]` }
@@ -461,12 +989,46 @@ export const leetcodeProblems: CodingProblem[] = [
             "Function wrappers must preserve functools.wraps metadata."
         ],
         starterCode: {
-            python: `import functools\ndef time_it(func):\n    @functools.wraps(func)\n    def wrapper(*args, **kwargs):\n        res = func(*args, **kwargs)\n        print("Execution Finished")\n        return res\n    return wrapper\n@time_it\ndef test(): pass\ntest()`,
-            javascript: `console.log("Execution Finished");`,
-            typescript: `console.log("Execution Finished");`,
-            cpp: `#include <iostream>\nint main() { std::cout << "Execution Finished"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("Execution Finished"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("Execution Finished"); } }`
+            python: `import functools
+
+def time_it(func):
+    # TODO: Write your decorator here
+    # Wrap func and print "Execution Finished" after calling func
+    pass
+
+@time_it
+def test():
+    pass
+
+test()`,
+            javascript: `// Implement timing wrapper function
+function timeIt(fn) {
+    // TODO: Write your code here
+}
+
+console.log("Execution Finished");`,
+            typescript: `function timeIt(fn: Function) {
+    // TODO: Write your code here
+}
+
+console.log("Execution Finished");`,
+            cpp: `#include <iostream>
+
+int main() {
+    std::cout << "Execution Finished";
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    printf("Execution Finished");
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        System.out.println("Execution Finished");
+    }
+}`
         },
         testCases: [
             { input: `test()`, output: `Execution Finished` }
@@ -500,12 +1062,37 @@ export const leetcodeProblems: CodingProblem[] = [
             "Employee table columns: id, name, salary"
         ],
         starterCode: {
-            python: `print('["Bob", "Charlie"]')`,
-            javascript: `console.log('["Bob", "Charlie"]');`,
-            typescript: `console.log('["Bob", "Charlie"]');`,
-            cpp: `#include <iostream>\nint main() { std::cout << "[\"Bob\", \"Charlie\"]"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("[\"Bob\", \"Charlie\"]"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("[\"Bob\", \"Charlie\"]"); } }`
+            python: `# Table schema: Employee(id, name, salary)
+# TODO: Write your SQL query or solution below
+query = """
+SELECT name FROM Employee WHERE ...
+"""
+
+print('["Bob", "Charlie"]')`,
+            javascript: `// Table schema: Employee(id, name, salary)
+// TODO: Write your SQL query or logic below
+const query = "SELECT name FROM Employee WHERE ...";
+
+console.log('["Bob", "Charlie"]');`,
+            typescript: `const query: string = "SELECT name FROM Employee WHERE ...";
+console.log('["Bob", "Charlie"]');`,
+            cpp: `#include <iostream>
+
+int main() {
+    std::cout << "[\"Bob\", \"Charlie\"]";
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    printf("[\"Bob\", \"Charlie\"]");
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        System.out.println("[\"Bob\", \"Charlie\"]");
+    }
+}`
         },
         testCases: [
             { input: `SELECT name FROM Employee WHERE salary > 50000`, output: `["Bob", "Charlie"]` }
@@ -535,12 +1122,34 @@ export const leetcodeProblems: CodingProblem[] = [
             "Return NULL if no second highest salary exists."
         ],
         starterCode: {
-            python: `print("200")`,
-            javascript: `console.log("200");`,
+            python: `# Table schema: Employee(id, salary)
+# TODO: Write your SQL query or solution below
+query = """
+SELECT DISTINCT salary FROM Employee ...
+"""
+
+print("200")`,
+            javascript: `// Table schema: Employee(id, salary)
+// TODO: Write your SQL query or solution below
+console.log("200");`,
             typescript: `console.log("200");`,
-            cpp: `#include <iostream>\nint main() { std::cout << "200"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("200"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("200"); } }`
+            cpp: `#include <iostream>
+
+int main() {
+    std::cout << "200";
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    printf("200");
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        System.out.println("200");
+    }
+}`
         },
         testCases: [
             { input: `SELECT DISTINCT salary FROM Employee ORDER BY salary DESC LIMIT 1 OFFSET 1`, output: `200` }
@@ -570,12 +1179,32 @@ export const leetcodeProblems: CodingProblem[] = [
             "Use DENSE_RANK() OVER (PARTITION BY departmentId ORDER BY salary DESC)"
         ],
         starterCode: {
-            python: `print("DENSE_RANK OK")`,
-            javascript: `console.log("DENSE_RANK OK");`,
+            python: `# TODO: Write your SQL query using DENSE_RANK()
+query = """
+SELECT departmentId, salary, DENSE_RANK() OVER (...)
+"""
+
+print("DENSE_RANK OK")`,
+            javascript: `// TODO: Write your SQL query using DENSE_RANK()
+console.log("DENSE_RANK OK");`,
             typescript: `console.log("DENSE_RANK OK");`,
-            cpp: `#include <iostream>\nint main() { std::cout << "DENSE_RANK OK"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("DENSE_RANK OK"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("DENSE_RANK OK"); } }`
+            cpp: `#include <iostream>
+
+int main() {
+    std::cout << "DENSE_RANK OK";
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    printf("DENSE_RANK OK");
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        System.out.println("DENSE_RANK OK");
+    }
+}`
         },
         testCases: [
             { input: `DENSE_RANK()`, output: `DENSE_RANK OK` }
@@ -610,12 +1239,63 @@ export const leetcodeProblems: CodingProblem[] = [
             "0 <= key_hash < M"
         ],
         starterCode: {
-            python: `import sys, json\ndef route_key(servers, key_hash):\n    servers.sort()\n    for s in servers:\n        if s >= key_hash:\n            return s\n    return servers[0]\ninput_data = sys.stdin.read().strip()\nif input_data:\n    data = json.loads(input_data)\n    print(route_key(data['servers'], data['key_hash']))`,
-            javascript: `const fs = require('fs');\nfunction routeKey(servers, keyHash) {\n    servers.sort((a, b) => a - b);\n    for (let s of servers) {\n        if (s >= keyHash) return s;\n    }\n    return servers[0];\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(routeKey(data.servers, data.key_hash));\n}`,
-            typescript: `const fs = require('fs');\nfunction routeKey(servers: number[], keyHash: number): number {\n    servers.sort((a, b) => a - b);\n    for (let s of servers) {\n        if (s >= keyHash) return s;\n    }\n    return servers[0];\n}\nconst input = fs.readFileSync('/dev/stdin', 'utf-8').trim();\nif (input) {\n    const data = JSON.parse(input);\n    console.log(routeKey(data.servers, data.key_hash));\n}`,
-            cpp: `#include <iostream>\nint main() { std::cout << "50"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("50"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("50"); } }`
+            python: `import sys, json
+
+def route_key(servers, key_hash):
+    # TODO: Write your code here
+    # Assign key_hash to nearest clockwise server node in ring
+    pass
+
+input_data = sys.stdin.read().strip()
+if input_data:
+    data = json.loads(input_data)
+    res = route_key(data['servers'], data['key_hash'])
+    if res is not None:
+        print(res)`,
+            javascript: `const fs = require('fs');
+
+function routeKey(servers, keyHash) {
+    // TODO: Write your code here
+    // Route keyHash to nearest clockwise server
+    
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = routeKey(data.servers, data.key_hash);
+    if (res !== undefined) console.log(res);
+}`,
+            typescript: `const fs = require('fs');
+
+function routeKey(servers: number[], keyHash: number): number {
+    // TODO: Write your code here
+    return 0;
+}
+
+const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
+if (input) {
+    const data = JSON.parse(input);
+    const res = routeKey(data.servers, data.key_hash);
+    if (res !== undefined) console.log(res);
+}`,
+            cpp: `#include <iostream>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    // TODO: Write your code here
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        // TODO: Write your code here
+    }
+}`
         },
         testCases: [
             { input: `{"servers": [10, 50, 80], "key_hash": 42}`, output: `50` }
@@ -645,12 +1325,56 @@ export const leetcodeProblems: CodingProblem[] = [
             "Token refill rate = 1 token/sec"
         ],
         starterCode: {
-            python: `print("ALLOWED")`,
-            javascript: `console.log("ALLOWED");`,
-            typescript: `console.log("ALLOWED");`,
-            cpp: `#include <iostream>\nint main() { std::cout << "ALLOWED"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("ALLOWED"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("ALLOWED"); } }`
+            python: `class TokenBucket:
+    def __init__(self, capacity: int, refill_rate: float):
+        # TODO: Initialize token bucket properties
+        pass
+
+    def allow_request(self, tokens: int = 1) -> bool:
+        # TODO: Return True if request can be processed, False if dropped
+        pass
+
+print("ALLOWED")`,
+            javascript: `class TokenBucket {
+    constructor(capacity, refillRate) {
+        // TODO: Initialize token bucket properties
+    }
+
+    allowRequest(tokens = 1) {
+        // TODO: Return true if allowed, false if dropped
+    }
+}
+
+console.log("ALLOWED");`,
+            typescript: `class TokenBucket {
+    constructor(capacity: number, refillRate: number) {
+        // TODO: Initialize token bucket properties
+    }
+
+    allowRequest(tokens: number = 1): boolean {
+        // TODO: Return true if allowed, false if dropped
+        return true;
+    }
+}
+
+console.log("ALLOWED");`,
+            cpp: `#include <iostream>
+
+int main() {
+    std::cout << "ALLOWED";
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    printf("ALLOWED");
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        System.out.println("ALLOWED");
+    }
+}`
         },
         testCases: [
             { input: `request=1`, output: `ALLOWED` }
@@ -680,12 +1404,56 @@ export const leetcodeProblems: CodingProblem[] = [
             "Guarantees 64-bit strictly increasing unique IDs across nodes."
         ],
         starterCode: {
-            python: `print("SNOWFLAKE_OK")`,
-            javascript: `console.log("SNOWFLAKE_OK");`,
-            typescript: `console.log("SNOWFLAKE_OK");`,
-            cpp: `#include <iostream>\nint main() { std::cout << "SNOWFLAKE_OK"; return 0; }`,
-            c: `#include <stdio.h>\nint main() { printf("SNOWFLAKE_OK"); return 0; }`,
-            java: `public class Solution { public static void main(String[] args) { System.out.println("SNOWFLAKE_OK"); } }`
+            python: `class SnowflakeGenerator:
+    def __init__(self, machine_id: int):
+        # TODO: Initialize 64-bit Snowflake generator
+        pass
+
+    def next_id(self) -> int:
+        # TODO: Return next unique 64-bit ID
+        pass
+
+print("SNOWFLAKE_OK")`,
+            javascript: `class SnowflakeGenerator {
+    constructor(machineId) {
+        // TODO: Initialize 64-bit Snowflake generator
+    }
+
+    nextId() {
+        // TODO: Return next unique 64-bit ID
+    }
+}
+
+console.log("SNOWFLAKE_OK");`,
+            typescript: `class SnowflakeGenerator {
+    constructor(machineId: number) {
+        // TODO: Initialize 64-bit Snowflake generator
+    }
+
+    nextId(): string | number {
+        // TODO: Return next unique 64-bit ID
+        return 0;
+    }
+}
+
+console.log("SNOWFLAKE_OK");`,
+            cpp: `#include <iostream>
+
+int main() {
+    std::cout << "SNOWFLAKE_OK";
+    return 0;
+}`,
+            c: `#include <stdio.h>
+
+int main() {
+    printf("SNOWFLAKE_OK");
+    return 0;
+}`,
+            java: `public class Solution {
+    public static void main(String[] args) {
+        System.out.println("SNOWFLAKE_OK");
+    }
+}`
         },
         testCases: [
             { input: `seq=1`, output: `SNOWFLAKE_OK` }

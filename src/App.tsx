@@ -13,6 +13,7 @@ import { AuthProvider } from './context/AuthContext'
 import CodingPlatform from './pages/CodingPlatform'
 import LearningHub from './pages/LearningHub'
 import RoadmapView from './pages/RoadmapView'
+import CertificateVerify from './pages/CertificateVerify'
 
 const App: React.FC = () => {
     return (
@@ -32,10 +33,13 @@ const App: React.FC = () => {
                                 <Route path="/" element={<Home />} />
                                 <Route path="/skills" element={<Skills />} />
                                 <Route path="/career-path" element={<RoadmapView />} />
+                                <Route path="/roadmaps" element={<RoadmapView />} />
                                 <Route path="/skill-test" element={<SkillTest />} />
                                 <Route path="/coding-lab" element={<CodingPlatform />} />
                                 <Route path="/learning-hub" element={<LearningHub />} />
                                 <Route path="/dashboard" element={<Dashboard />} />
+                                <Route path="/verify/:certificateId" element={<CertificateVerify />} />
+                                <Route path="/verify" element={<CertificateVerify />} />
                                 <Route path="/sign-in" element={<SignIn />} />
                                 <Route path="/onboarding" element={<Onboarding />} />
                             </Routes>
