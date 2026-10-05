@@ -25,6 +25,7 @@
     "jspdf": "^4.2.1",
     "lucide-react": "^0.292.0",
     "mongoose": "^8.9.7",
+    "openai": "^7.28.0",
     "prismjs": "^1.30.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

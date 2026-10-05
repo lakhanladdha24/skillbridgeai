@@ -6,6 +6,9 @@ import EmbeddedMaterialModal from '../components/EmbeddedMaterialModal';
 import CertificateModal from '../components/CertificateModal';
 import { useAuth } from '../hooks/useAuth';
 import { Certificate } from '../types/certificate';
+import { CLIENT_ROADMAP_CATALOG, getClientCatalogRoadmap } from '../data/roadmapData';
+import { getVerifiedVideosForTopic, toSafeEmbedUrl } from '../utils/videoResolver';
+import { issueCertificate, getCourseCompletedTopicIds, saveCourseCompletedTopicIds } from '../utils/certificateHelper';
 
 interface TopicNode {
     topicId: string;
@@ -29,7 +32,47 @@ interface Phase {
     topics: TopicNode[];
 }
 
-import { CLIENT_ROADMAP_CATALOG, getClientCatalogRoadmap } from '../data/roadmapData';
+interface RoadmapState {
+    goal: string;
+    title: string;
+    estimatedDuration: string;
+    studyTimeDaily: string;
+    completionPercentage: number;
+    semanticMatchScore: number;
+    phases: Phase[];
+}
+
+interface TopicStudyData {
+    topic: string;
+    category: string;
+    difficulty: string;
+    officialDocUrl: string;
+    docName: string;
+    videos: Array<{
+        title: string;
+        channel?: string;
+        embedUrl?: string;
+        url?: string;
+        duration?: string;
+        qualityBadge?: string;
+    }>;
+    articles: Array<{
+        source: string;
+        title: string;
+        url: string;
+        badge: string;
+    }>;
+    studyNotes: {
+        definition: string;
+        explanation: string;
+        codeExample: string;
+        pdfGuide: {
+            title: string;
+            markdownContent: string;
+        };
+    };
+    practiceProblems?: Array<{ id: string; title: string; difficulty: string; url: string }>;
+}
 
 const initialDefault = CLIENT_ROADMAP_CATALOG['frontend'];
 
@@ -43,7 +86,7 @@ const RoadmapView: React.FC = () => {
     const [activeRoleSlug, setActiveRoleSlug] = useState<string>('frontend');
 
     // Active Generated Roadmap State - INITIALIZED WITH DEFAULT CATALOG (NEVER EMPTY)
-    const [roadmapData, setRoadmapData] = useState<any>({
+    const [roadmapData, setRoadmapData] = useState<RoadmapState>({
         goal: initialDefault.title,
         title: initialDefault.title,
         estimatedDuration: initialDefault.estimated_duration,
@@ -55,7 +98,7 @@ const RoadmapView: React.FC = () => {
 
     // Modal Drawer State
     const [selectedTopic, setSelectedTopic] = useState<FlowchartNode | null>(null);
-    const [topicStudyData, setTopicStudyData] = useState<any>(null);
+    const [topicStudyData, setTopicStudyData] = useState<TopicStudyData | null>(null);
     const [isLoadingStudy, setIsLoadingStudy] = useState<boolean>(false);
     const [modalInitialTab, setModalInitialTab] = useState<'video' | 'ai' | 'article' | 'pdf' | 'practice'>('video');
 
@@ -69,14 +112,93 @@ const RoadmapView: React.FC = () => {
     const [globalAiReply, setGlobalAiReply] = useState<string>('');
     const [isLoadingGlobalAi, setIsLoadingGlobalAi] = useState<boolean>(false);
 
+    const handleSearchRoadmapQuery = React.useCallback(async (queryText: string) => {
+        const target = queryText || userGoal || 'Frontend Developer';
+        
+        // 1. Immediately render client catalog so the screen is NEVER blank
+        const clientMatch = getClientCatalogRoadmap(target);
+        if (clientMatch && clientMatch.phases && clientMatch.phases.length > 0) {
+            const courseTitle = clientMatch.title || target;
+            const savedCompleted = getCourseCompletedTopicIds(courseTitle);
+
+            const hydratedPhases = clientMatch.phases.map((p: Phase) => ({
+                ...p,
+                topics: p.topics.map((t: TopicNode) => ({
+                    ...t,
+                    completed: savedCompleted.length > 0 ? savedCompleted.includes(t.topicId) : !!t.completed
+                }))
+            }));
+
+            const allT = hydratedPhases.flatMap((p: Phase) => p.topics);
+            const doneCount = allT.filter((t: TopicNode) => t.completed).length;
+            const percentage = Math.round((doneCount / Math.max(allT.length, 1)) * 100);
+
+            setRoadmapData({
+                goal: courseTitle,
+                title: courseTitle,
+                estimatedDuration: clientMatch.estimated_duration || '5–6 months',
+                studyTimeDaily: studyTime,
+                completionPercentage: percentage,
+                semanticMatchScore: clientMatch.semantic_match_score || 99.0,
+                phases: hydratedPhases
+            });
+        }
+
+        setIsGenerating(true);
+
+        try {
+            const res = await fetch('/api/roadmap/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: target })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.phases && data.phases.length > 0) {
+                    const courseTitle = data.title || data.query || target;
+                    const savedCompleted = getCourseCompletedTopicIds(courseTitle);
+
+                    const hydratedPhases = data.phases.map((p: Phase) => ({
+                        ...p,
+                        topics: p.topics.map((t: TopicNode) => ({
+                            ...t,
+                            completed: savedCompleted.length > 0 ? savedCompleted.includes(t.topicId) : !!t.completed
+                        }))
+                    }));
+
+                    const allT = hydratedPhases.flatMap((p: Phase) => p.topics);
+                    const doneCount = allT.filter((t: TopicNode) => t.completed).length;
+                    const percentage = Math.round((doneCount / Math.max(allT.length, 1)) * 100);
+
+                    setRoadmapData({
+                        goal: courseTitle,
+                        title: courseTitle,
+                        estimatedDuration: data.estimated_duration || '5–6 months',
+                        studyTimeDaily: studyTime,
+                        completionPercentage: percentage,
+                        semanticMatchScore: data.semantic_match_score || 98.8,
+                        phases: hydratedPhases
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('Roadmap API sync failed (rendered via client catalog):', e);
+        } finally {
+            setIsGenerating(false);
+        }
+    }, [userGoal, studyTime]);
+
     useEffect(() => {
         handleSearchRoadmapQuery('Frontend Developer');
-    }, []);
+    }, [handleSearchRoadmapQuery]);
 
     const handleOpenTopic = async (node: FlowchartNode, tab: 'video' | 'ai' | 'article' | 'pdf' | 'practice' = 'video') => {
         setSelectedTopic(node);
         setModalInitialTab(tab);
+        setTopicStudyData(null);
         setIsLoadingStudy(true);
+
+        const verifiedVids = getVerifiedVideosForTopic(node.title);
 
         const fallbackTopicStudy = {
             topic: node.title,
@@ -84,19 +206,7 @@ const RoadmapView: React.FC = () => {
             difficulty: node.level,
             officialDocUrl: node.docUrl || "https://developer.mozilla.org/en-US/",
             docName: "Official Documentation",
-            videos: [
-                {
-                    title: `${node.title} - Comprehensive Video Lecture`,
-                    creator: "freeCodeCamp.org",
-                    embedUrl: `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(node.title + " tutorial")}`,
-                    url: `https://www.youtube.com/results?search_query=${encodeURIComponent(node.title + " tutorial")}`,
-                    duration: "1h - 3h Course",
-                    score: "4.9",
-                    ratingText: "★ 4.9 Verified Course",
-                    isFree: true,
-                    summary: node.description
-                }
-            ],
+            videos: verifiedVids,
             articles: [
                 { source: "Official Docs", title: `${node.title} Specification & Guide`, url: node.docUrl || "https://developer.mozilla.org/en-US/", badge: "PRIMARY SPEC" },
                 { source: "FreeCodeCamp", title: `${node.title} Comprehensive Guide`, url: `https://www.freecodecamp.org/news/search/?query=${encodeURIComponent(node.title)}`, badge: "GUIDE" },
@@ -124,65 +234,86 @@ const RoadmapView: React.FC = () => {
                 const studyJson = await studyRes.json();
                 const videoJson = videoRes.ok ? await videoRes.json() : {};
 
+                const rawVids = (videoJson.videos && videoJson.videos.length > 0)
+                    ? videoJson.videos
+                    : (studyJson.videos && studyJson.videos.length > 0)
+                        ? studyJson.videos
+                        : verifiedVids;
+
+                const safeVideos = rawVids.map((v: { embedUrl?: string; url?: string; title: string; channel?: string; duration?: string; qualityBadge?: string }) => ({
+                    ...v,
+                    embedUrl: toSafeEmbedUrl(v.embedUrl || v.url, node.title),
+                }));
+
                 setTopicStudyData({
                     ...fallbackTopicStudy,
                     ...studyJson,
-                    videos: (videoJson.videos && videoJson.videos.length > 0) ? videoJson.videos : (studyJson.videos || fallbackTopicStudy.videos)
+                    videos: safeVideos
                 });
             } else {
                 setTopicStudyData(fallbackTopicStudy);
             }
-        } catch (e) {
+        } catch {
             setTopicStudyData(fallbackTopicStudy);
         } finally {
             setIsLoadingStudy(false);
         }
     };
 
-    const triggerCertificateGeneration = async (courseName: string) => {
+    const triggerCertificateGeneration = async (courseName?: string) => {
+        const targetCourse = courseName || roadmapData.goal || 'Frontend Developer';
         const userId = user?.id || 'usr_guest';
-        const userName = user?.name || user?.email?.split('@')[0] || 'Skill Bridge Graduate';
-        const courseId = `course_${courseName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+        const userName = user?.name || user?.email?.split('@')[0] || 'Skill Bridge AI Graduate';
+        const courseId = `course_${targetCourse.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
 
         try {
-            const res = await fetch('/api/certificates/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId,
-                    userName,
-                    courseId,
-                    courseName
-                })
+            const cert = await issueCertificate({
+                userId,
+                userName,
+                courseId,
+                courseName: targetCourse
             });
-            const data = await res.json();
-            if (data.success && data.certificate) {
-                setGeneratedCertificate(data.certificate);
-                setShowCertificateModal(true);
-            }
+            setGeneratedCertificate(cert);
+            setShowCertificateModal(true);
         } catch (e) {
             console.error('Certificate Auto Generation Error:', e);
         }
     };
 
     const toggleTopicComplete = (nodeId: string) => {
-        setRoadmapData((prev: any) => {
+        setSelectedTopic((prev) => {
+            if (!prev) return null;
+            if (prev.id === nodeId || (prev as { topicId?: string }).topicId === nodeId) {
+                return { ...prev, completed: !prev.completed };
+            }
+            return prev;
+        });
+
+        setRoadmapData((prev: RoadmapState) => {
             let total = 0;
             let done = 0;
+            const completedTopicIds: string[] = [];
 
             const updatedPhases = prev.phases.map((ph: Phase) => {
                 const updatedTopics = ph.topics.map((t) => {
-                    const isTarget = t.topicId === nodeId;
+                    const isTarget = t.topicId === nodeId || (t as { id?: string }).id === nodeId;
                     const newStatus = isTarget ? !t.completed : t.completed;
                     total += 1;
-                    if (newStatus) done += 1;
+                    if (newStatus) {
+                        done += 1;
+                        completedTopicIds.push(t.topicId);
+                    }
                     return { ...t, completed: newStatus };
                 });
                 return { ...ph, topics: updatedTopics };
             });
 
+            // Persist completed topics for this course so switching courses retains progress
+            saveCourseCompletedTopicIds(prev.goal, completedTopicIds);
+
             const newPercentage = Math.round((done / Math.max(total, 1)) * 100);
 
+            // Automatically trigger official certificate whenever course reaches 100%
             if (newPercentage === 100 && prev.completionPercentage < 100) {
                 triggerCertificateGeneration(prev.goal);
             }
@@ -193,6 +324,27 @@ const RoadmapView: React.FC = () => {
                 phases: updatedPhases
             };
         });
+    };
+
+    const handleCompleteCourseAndCertify = () => {
+        const completedTopicIds: string[] = [];
+        const updatedPhases = roadmapData.phases.map((ph: Phase) => {
+            const updatedTopics = ph.topics.map((t) => {
+                completedTopicIds.push(t.topicId);
+                return { ...t, completed: true };
+            });
+            return { ...ph, topics: updatedTopics };
+        });
+
+        saveCourseCompletedTopicIds(roadmapData.goal, completedTopicIds);
+
+        setRoadmapData((prev) => ({
+            ...prev,
+            completionPercentage: 100,
+            phases: updatedPhases
+        }));
+
+        triggerCertificateGeneration(roadmapData.goal);
     };
 
     const roleRoadmaps = [
@@ -207,59 +359,7 @@ const RoadmapView: React.FC = () => {
         { name: 'Cybersecurity', slug: 'cybersecurity', query: 'Cybersecurity & Ethical Hacking' }
     ];
 
-    const handleSearchRoadmapQuery = async (queryText: string) => {
-        const target = queryText || userGoal || 'Frontend Developer';
-        
-        // 1. Immediately render client catalog so the screen is NEVER blank
-        const clientMatch = getClientCatalogRoadmap(target);
-        if (clientMatch && clientMatch.phases && clientMatch.phases.length > 0) {
-            const allT = clientMatch.phases.flatMap((p: Phase) => p.topics);
-            const doneCount = allT.filter((t: TopicNode) => t.completed).length;
-            const percentage = Math.round((doneCount / Math.max(allT.length, 1)) * 100);
 
-            setRoadmapData({
-                goal: clientMatch.title,
-                title: clientMatch.title,
-                estimatedDuration: clientMatch.estimated_duration || '5–6 months',
-                studyTimeDaily: studyTime,
-                completionPercentage: percentage,
-                semanticMatchScore: clientMatch.semantic_match_score || 99.0,
-                phases: clientMatch.phases
-            });
-        }
-
-        setIsGenerating(true);
-
-        try {
-            const res = await fetch('/api/roadmap/search', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: target })
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.phases && data.phases.length > 0) {
-                    const allT = data.phases.flatMap((p: Phase) => p.topics);
-                    const doneCount = allT.filter((t: TopicNode) => t.completed).length;
-                    const percentage = Math.round((doneCount / Math.max(allT.length, 1)) * 100);
-
-                    setRoadmapData({
-                        goal: data.title || data.query || target,
-                        title: data.title || `${target} Roadmap`,
-                        estimatedDuration: data.estimated_duration || '5–6 months',
-                        studyTimeDaily: studyTime,
-                        completionPercentage: percentage,
-                        semanticMatchScore: data.semantic_match_score || 98.8,
-                        phases: data.phases
-                    });
-                }
-            }
-        } catch (e) {
-            console.warn('Roadmap API sync failed (rendered via client catalog):', e);
-        } finally {
-            setIsGenerating(false);
-        }
-    };
 
     const handleGlobalAiQuery = async (qText?: string) => {
         const prompt = qText || globalAiQuery;
@@ -278,7 +378,7 @@ const RoadmapView: React.FC = () => {
             });
             const data = await res.json();
             setGlobalAiReply(data.reply || 'Here is the recommended path for this roadmap.');
-        } catch (e) {
+        } catch {
             setGlobalAiReply('Could not connect to AI Tutor. Please try again.');
         } finally {
             setIsLoadingGlobalAi(false);
@@ -325,9 +425,13 @@ const RoadmapView: React.FC = () => {
     const completedCount = allTopicsList.filter(n => n.completed).length;
     const totalTopicsCount = allTopicsList.length;
 
-    // Recommended Next Topic
-    const recommendedNextTopic = allTopicsList.find(n => !n.completed && !n.locked) || allTopicsList.find(n => !n.completed);
     const continueLearningTopic = allTopicsList.find(n => !n.completed) || allTopicsList[0];
+
+    // Next topic specifically for the opened modal (guaranteed to advance to the next sequential topic)
+    const currentTopicIndex = selectedTopic ? allTopicsList.findIndex(n => n.id === selectedTopic.id) : -1;
+    const modalNextTopic = (currentTopicIndex >= 0 && currentTopicIndex + 1 < allTopicsList.length)
+        ? allTopicsList[currentTopicIndex + 1]
+        : (allTopicsList.find(n => !n.completed && n.id !== selectedTopic?.id) || null);
 
     return (
         <div className="max-w-6xl mx-auto pt-6 px-3 sm:px-6 pb-24">
@@ -448,21 +552,41 @@ const RoadmapView: React.FC = () => {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-2 border-t border-white/5">
-                        <button
-                            onClick={() => setShowGlobalAiModal(true)}
-                            className="flex-1 py-2.5 px-3 bg-gradient-to-r from-purple-600 to-primary text-white font-bold text-xs rounded-xl shadow-md hover:scale-105 transition-all flex items-center justify-center gap-1.5"
-                        >
-                            <Sparkles size={14} /> Learn with AI
-                        </button>
-
-                        {roadmapData.completionPercentage === 100 && (
+                    <div className="flex flex-col gap-2 pt-2 border-t border-white/5">
+                        <div className="flex items-center gap-2">
                             <button
-                                onClick={() => triggerCertificateGeneration(roadmapData.goal)}
-                                className="py-2.5 px-3 bg-gradient-to-r from-amber-400 to-amber-600 text-black font-black text-xs rounded-xl shadow-md hover:scale-105 transition-all flex items-center gap-1"
+                                onClick={() => setShowGlobalAiModal(true)}
+                                className="flex-1 py-2.5 px-3 bg-gradient-to-r from-purple-600 to-primary text-white font-bold text-xs rounded-xl shadow-md hover:scale-105 transition-all flex items-center justify-center gap-1.5"
                             >
-                                <Award size={14} /> Certificate
+                                <Sparkles size={14} /> Learn with AI
                             </button>
+
+                            <button
+                                type="button"
+                                onClick={() => triggerCertificateGeneration(roadmapData.goal)}
+                                className={`py-2.5 px-3.5 rounded-xl font-black text-xs shadow-md hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer ${
+                                    roadmapData.completionPercentage === 100
+                                        ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-black shadow-amber-500/20'
+                                        : 'bg-white/10 hover:bg-amber-400 hover:text-black text-amber-400 border border-amber-400/30'
+                                }`}
+                                title="View or Claim Official Verified Certificate"
+                            >
+                                <Award size={15} /> {roadmapData.completionPercentage === 100 ? 'View Certificate' : 'Claim Certificate'}
+                            </button>
+                        </div>
+
+                        {roadmapData.completionPercentage < 100 ? (
+                            <button
+                                type="button"
+                                onClick={handleCompleteCourseAndCertify}
+                                className="w-full py-2 px-3 bg-amber-400/10 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 font-bold text-[11px] rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                            >
+                                <Award size={13} className="text-amber-400" /> Complete Entire Course & Get Certified
+                            </button>
+                        ) : (
+                            <div className="w-full py-1.5 px-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] rounded-xl text-center font-bold">
+                                ✓ Certified by SkillBridge AI Official Registry
+                            </div>
                         )}
                     </div>
                 </div>
@@ -488,8 +612,9 @@ const RoadmapView: React.FC = () => {
                 onNavigateToCoding={() => navigate('/coding-lab')}
                 courseId={`course_${roadmapData.goal.toLowerCase().replace(/[^a-z0-9]/g, '_')}`}
                 userId={user?.id}
-                nextTopic={recommendedNextTopic}
+                nextTopic={modalNextTopic}
                 onSelectNextTopic={(next) => handleOpenTopic(next, 'video')}
+                onClaimCertificate={() => triggerCertificateGeneration(roadmapData.goal)}
                 initialTab={modalInitialTab}
             />
 

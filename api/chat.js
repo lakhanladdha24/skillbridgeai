@@ -3,6 +3,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Groq from 'groq-sdk';
+import OpenAI from 'openai';
 
 // Load .env locally if present
 try {
@@ -67,11 +68,46 @@ export default async function handler(req, res) {
         }
     }
 
-    // Priority 2: Groq
+    // Priority 2: OpenAI
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (openaiKey) {
+        try {
+            const openai = new OpenAI({ apiKey: openaiKey });
+            const openaiModels = ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'];
+            const messages = [
+                { role: "system", content: "You are SkillBridgeAI, a premium AI career mentor. Always use markdown. Focus on professional growth." },
+                ...cleanHistory.map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'assistant',
+                    content: msg.content
+                })),
+                { role: "user", content: message }
+            ];
+
+            for (const modelName of openaiModels) {
+                try {
+                    const completion = await openai.chat.completions.create({
+                        messages,
+                        model: modelName,
+                        temperature: 0.5,
+                        max_tokens: 2048,
+                    });
+                    const reply = completion.choices[0]?.message?.content;
+                    if (reply) return res.status(200).json({ reply });
+                } catch (error) {
+                    console.error(`OpenAI Model [${modelName}] Error:`, error.message);
+                    if (error.status === 401) break;
+                }
+            }
+        } catch (e) {
+            console.error("OpenAI initialization error:", e.message);
+        }
+    }
+
+    // Priority 3: Groq
     const groqKey = process.env.GROQ_API_KEY || process.env.CHATBOT_API_KEY;
     if (groqKey && !groqKey.startsWith('nvapi-')) {
         const groq = new Groq({ apiKey: groqKey });
-        const groqModels = ['groq/compound', 'openai/gpt-oss-120b', 'groq/compound-mini', 'qwen/qwen3.6-27b', 'llama-3.3-70b-versatile'];
+        const groqModels = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'allam-2-7b', 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
         const messages = [
             { role: "system", content: "You are SkillBridgeAI, a premium AI career mentor. Always use markdown. Focus on professional growth." },
             ...cleanHistory.map(msg => ({
@@ -134,7 +170,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({ 
-        reply: `**SkillBridgeAI Assistant (Offline Mode)**\n\nI received your query: "${message}".\n\nTo enable live AI responses, please ensure a valid \`GROQ_API_KEY\` or \`GEMINI_API_KEY\` is configured in environment variables.` 
+        reply: `**SkillBridgeAI Assistant (Offline Mode)**\n\nI received your query: "${message}".\n\nTo enable live AI responses, please ensure a valid \`OPENAI_API_KEY\`, \`GROQ_API_KEY\`, or \`GEMINI_API_KEY\` is configured in environment variables.` 
     });
 }
 

@@ -25,10 +25,27 @@ export interface FlowchartNode {
     docUrl?: string;
 }
 
+export interface FlowchartPhaseTopic {
+    topicId?: string;
+    id?: string;
+    title?: string;
+    description?: string;
+    difficulty?: string;
+    completed?: boolean;
+}
+
+export interface FlowchartPhase {
+    phaseId?: string;
+    id?: string;
+    title?: string;
+    description?: string;
+    topics?: FlowchartPhaseTopic[];
+}
+
 interface VisualFlowchartProps {
     courseTitle: string;
     nodes: FlowchartNode[];
-    phases?: any[];
+    phases?: FlowchartPhase[];
     onNodeClick: (node: FlowchartNode) => void;
     onToggleComplete?: (nodeId: string) => void;
     onOpenAiTutor?: (node: FlowchartNode) => void;
@@ -216,10 +233,10 @@ const VisualFlowchart: React.FC<VisualFlowchartProps> = ({
                         style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }}
                         className="transition-transform duration-300 ease-out max-w-4xl mx-auto space-y-12"
                     >
-                        {groupedPhases.map((phase: any, pIdx: number) => {
+                        {groupedPhases.map((phase: FlowchartPhase, pIdx: number) => {
                             const phaseTopics: FlowchartNode[] = nodes.filter(n => {
                                 if (phase.topics) {
-                                    return phase.topics.some((pt: any) => pt.topicId === n.id || pt.id === n.id);
+                                    return phase.topics.some((pt: FlowchartPhaseTopic) => pt.topicId === n.id || pt.id === n.id);
                                 }
                                 return true;
                             });
@@ -254,14 +271,14 @@ const VisualFlowchart: React.FC<VisualFlowchartProps> = ({
                                                 <div key={node.id} className="relative flex flex-col items-center">
                                                     {/* Roadmap Node Card */}
                                                     <motion.div
-                                                        whileHover={{ scale: node.locked ? 1 : 1.015 }}
-                                                        whileTap={{ scale: node.locked ? 1 : 0.985 }}
-                                                        onClick={() => !node.locked && onNodeClick(node)}
+                                                        whileHover={{ scale: 1.015 }}
+                                                        whileTap={{ scale: 0.985 }}
+                                                        onClick={() => onNodeClick(node)}
                                                         className={`w-full max-w-2xl p-5 rounded-2xl border transition-all cursor-pointer shadow-lg relative group ${
                                                             node.completed
                                                                 ? 'bg-emerald-950/25 border-emerald-500/60 hover:border-emerald-400'
                                                                 : node.locked
-                                                                ? 'bg-slate-900/40 border-white/5 opacity-50 cursor-not-allowed'
+                                                                ? 'bg-slate-900/80 border-slate-700/60 hover:border-primary hover:bg-slate-800/80'
                                                                 : 'bg-slate-900/80 border-slate-700/80 hover:border-primary hover:bg-slate-800/80'
                                                         }`}
                                                     >
@@ -273,17 +290,15 @@ const VisualFlowchart: React.FC<VisualFlowchartProps> = ({
                                                                     type="button"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        if (onToggleComplete && !node.locked) onToggleComplete(node.id);
+                                                                        if (onToggleComplete) onToggleComplete(node.id);
                                                                     }}
-                                                                    className="mt-0.5 focus:outline-none transition-transform hover:scale-110"
+                                                                    className="mt-0.5 focus:outline-none transition-transform hover:scale-110 cursor-pointer"
                                                                     title={node.completed ? "Mark as Incomplete" : "Mark as Complete"}
                                                                 >
                                                                     {node.completed ? (
                                                                         <CheckCircle2 size={24} className="text-emerald-400" />
-                                                                    ) : node.locked ? (
-                                                                        <Lock size={20} className="text-gray-500" />
                                                                     ) : (
-                                                                        <Circle size={24} className="text-gray-500 hover:text-primary transition-all" />
+                                                                        <Circle size={24} className="text-gray-400 hover:text-primary transition-all" />
                                                                     )}
                                                                 </button>
 
@@ -315,9 +330,9 @@ const VisualFlowchart: React.FC<VisualFlowchartProps> = ({
                                                                             </span>
                                                                         )}
 
-                                                                        {node.locked && (
-                                                                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-gray-500/20 text-gray-400 flex items-center gap-1">
-                                                                                <Lock size={10} /> Prerequisite Required
+                                                                        {node.locked && !node.completed && (
+                                                                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                                                                                <Lock size={10} /> In Progression
                                                                             </span>
                                                                         )}
                                                                     </div>
@@ -398,12 +413,12 @@ const VisualFlowchart: React.FC<VisualFlowchartProps> = ({
                             <motion.div
                                 key={node.id}
                                 whileHover={{ scale: 1.02 }}
-                                onClick={() => !node.locked && onNodeClick(node)}
+                                onClick={() => onNodeClick(node)}
                                 className={`p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
                                     node.completed
                                         ? 'bg-emerald-950/25 border-emerald-500/50'
                                         : node.locked
-                                        ? 'bg-slate-900/40 border-white/5 opacity-50 cursor-not-allowed'
+                                        ? 'bg-slate-900/80 border-slate-700/60 hover:border-primary'
                                         : 'bg-slate-900/80 border-slate-700/80 hover:border-primary'
                                 }`}
                             >
@@ -416,13 +431,14 @@ const VisualFlowchart: React.FC<VisualFlowchartProps> = ({
                                             type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                if (onToggleComplete && !node.locked) onToggleComplete(node.id);
+                                                if (onToggleComplete) onToggleComplete(node.id);
                                             }}
+                                            className="cursor-pointer hover:scale-110 transition-transform"
                                         >
                                             {node.completed ? (
                                                 <CheckCircle2 size={20} className="text-emerald-400" />
                                             ) : (
-                                                <Circle size={20} className="text-gray-500 hover:text-primary" />
+                                                <Circle size={20} className="text-gray-400 hover:text-primary" />
                                             )}
                                         </button>
                                     </div>
@@ -446,7 +462,7 @@ const VisualFlowchart: React.FC<VisualFlowchartProps> = ({
                         {filteredNodes.map((node, idx) => (
                             <div
                                 key={node.id}
-                                onClick={() => !node.locked && onNodeClick(node)}
+                                onClick={() => onNodeClick(node)}
                                 className={`p-4 rounded-xl border flex items-center justify-between gap-4 cursor-pointer transition-all ${
                                     node.completed 
                                         ? 'bg-emerald-950/20 border-emerald-500/40' 
@@ -458,13 +474,14 @@ const VisualFlowchart: React.FC<VisualFlowchartProps> = ({
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            if (onToggleComplete && !node.locked) onToggleComplete(node.id);
+                                            if (onToggleComplete) onToggleComplete(node.id);
                                         }}
+                                        className="cursor-pointer hover:scale-110 transition-transform"
                                     >
                                         {node.completed ? (
                                             <CheckCircle2 size={20} className="text-emerald-400" />
                                         ) : (
-                                            <Circle size={20} className="text-gray-500 hover:text-primary" />
+                                            <Circle size={20} className="text-gray-400 hover:text-primary" />
                                         )}
                                     </button>
                                     <div>

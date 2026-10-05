@@ -28,8 +28,22 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate,
             const canvas = await html2canvas(certRef.current, {
                 scale: 3,
                 useCORS: true,
-                backgroundColor: '#030712', // Dark background
-                logging: false
+                backgroundColor: '#030712',
+                logging: false,
+                onclone: (clonedDoc) => {
+                    const certEl = clonedDoc.querySelector('[data-cert-node="true"]');
+                    if (certEl) {
+                        const allNodes = certEl.querySelectorAll('*');
+                        allNodes.forEach((node) => {
+                            const htmlNode = node as HTMLElement;
+                            if (htmlNode.classList.contains('text-transparent')) {
+                                htmlNode.classList.remove('text-transparent');
+                                htmlNode.style.color = '#ffffff';
+                                htmlNode.style.webkitTextFillColor = '#ffffff';
+                            }
+                        });
+                    }
+                }
             });
 
             const imgData = canvas.toDataURL('image/png');
@@ -104,9 +118,12 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate,
                     {/* Printable Certificate Frame */}
                     <div
                         ref={certRef}
+                        data-cert-node="true"
                         className="relative w-full aspect-[1.414/1] bg-gray-950 rounded-3xl p-8 md:p-12 border-4 border-amber-400/30 overflow-hidden shadow-2xl flex flex-col justify-between text-white font-sans select-none"
                         style={{
-                            backgroundImage: 'radial-gradient(circle at 50% 30%, rgba(0, 240, 255, 0.08), transparent 70%), radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08), transparent 60%)'
+                            backgroundColor: '#030712',
+                            backgroundImage: 'radial-gradient(circle at 50% 30%, rgba(0, 240, 255, 0.1), transparent 70%), radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1), transparent 60%)',
+                            color: '#ffffff'
                         }}
                     >
                         {/* Decorative Outer Border Lines */}
@@ -122,48 +139,68 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate,
                                     </div>
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                                        SKILL<span className="text-primary">BRIDGE</span> AI
+                                    <h3 className="text-xl font-black tracking-wider text-white" style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}>
+                                        SKILL<span style={{ color: '#00f0ff', WebkitTextFillColor: '#00f0ff' }}>BRIDGE</span> AI
                                     </h3>
                                     <p className="text-[10px] text-gray-400 font-mono tracking-widest uppercase">
-                                        AI-POWERED LEARNING PLATFORM
+                                        OFFICIAL ACCREDITATION & CERTIFICATION PLATFORM
                                     </p>
                                 </div>
                             </div>
 
                             <div className="text-right">
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-mono font-bold">
-                                    <ShieldCheck size={14} /> VERIFIED COMPLETED
+                                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-mono font-bold shadow-lg">
+                                    <ShieldCheck size={14} /> CERTIFIED BY SKILLBRIDGE AI
                                 </span>
                             </div>
                         </div>
 
                         {/* Main Body */}
                         <div className="text-center my-auto py-6 space-y-4 relative z-10">
-                            <p className="text-xs md:text-sm font-mono tracking-widest text-amber-400/90 uppercase font-semibold">
-                                CERTIFICATE OF COMPLETION
+                            <p className="text-xs md:text-sm font-mono tracking-widest text-amber-400 uppercase font-bold" style={{ color: '#fbbf24', WebkitTextFillColor: '#fbbf24' }}>
+                                ★ OFFICIAL CERTIFICATE OF COMPLETION & MASTERY ★
                             </p>
                             
-                            <p className="text-gray-400 text-xs md:text-sm font-medium">
-                                This certificate is proudly presented to
+                            <p className="text-gray-300 text-xs md:text-sm font-medium" style={{ color: '#d1d5db', WebkitTextFillColor: '#d1d5db' }}>
+                                This official credential certifies that
                             </p>
 
-                            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white capitalize bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-100 to-primary py-1">
+                            <h1 
+                                className="text-3xl md:text-5xl font-black tracking-tight text-white capitalize py-1"
+                                style={{
+                                    color: '#ffffff',
+                                    WebkitTextFillColor: '#ffffff',
+                                    textShadow: '0 2px 14px rgba(0, 0, 0, 0.95)'
+                                }}
+                            >
                                 {certificate.userName}
                             </h1>
 
-                            <p className="text-gray-400 text-xs md:text-sm max-w-lg mx-auto leading-relaxed">
-                                for successfully completing the structured curriculum and masterclass requirements for
+                            <p className="text-gray-300 text-xs md:text-sm max-w-xl mx-auto leading-relaxed" style={{ color: '#d1d5db', WebkitTextFillColor: '#d1d5db' }}>
+                                has successfully completed and mastered the rigorous curriculum, video lectures, and practical project requirements for
                             </p>
 
-                            <div className="inline-block px-6 py-2 rounded-2xl bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 border border-primary/40">
-                                <h2 className="text-xl md:text-3xl font-black text-primary tracking-wide">
+                            <div 
+                                className="inline-block px-7 py-2.5 rounded-2xl border shadow-xl"
+                                style={{
+                                    backgroundColor: 'rgba(0, 240, 255, 0.12)',
+                                    borderColor: 'rgba(0, 240, 255, 0.45)'
+                                }}
+                            >
+                                <h2 
+                                    className="text-xl md:text-3xl font-black tracking-wide"
+                                    style={{
+                                        color: '#00f0ff',
+                                        WebkitTextFillColor: '#00f0ff',
+                                        textShadow: '0 0 20px rgba(0, 240, 255, 0.4)'
+                                    }}
+                                >
                                     {certificate.courseName}
                                 </h2>
                             </div>
 
-                            <p className="text-xs text-gray-400 font-mono">
-                                Successfully completed on: <span className="text-white font-bold">{certificate.completionDate}</span>
+                            <p className="text-xs text-gray-300 font-mono" style={{ color: '#d1d5db', WebkitTextFillColor: '#d1d5db' }}>
+                                Certified and issued on: <span className="text-white font-bold" style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}>{certificate.completionDate}</span> • Accredited by SkillBridge AI
                             </p>
                         </div>
 
@@ -171,35 +208,44 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate,
                         <div className="flex items-end justify-between border-t border-white/10 pt-6 relative z-10">
                             {/* Left: Certificate Meta */}
                             <div className="space-y-1 text-left">
-                                <div className="text-[10px] text-gray-400 font-mono">CERTIFICATE ID</div>
-                                <div className="text-sm font-mono font-black text-amber-400 tracking-wider">
+                                <div className="text-[10px] text-gray-400 font-mono uppercase tracking-wider">OFFICIAL CREDENTIAL ID</div>
+                                <div 
+                                    className="text-sm font-mono font-black tracking-wider"
+                                    style={{ color: '#fbbf24', WebkitTextFillColor: '#fbbf24' }}
+                                >
                                     {certificate.certificateId}
                                 </div>
                                 <a
                                     href={verificationUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-mono mt-1"
+                                    className="inline-flex items-center gap-1 text-[11px] text-cyan-400 hover:underline font-mono mt-1"
+                                    style={{ color: '#38bdf8' }}
                                 >
-                                    Verify Online <ExternalLink size={10} />
+                                    Verify Credential Online <ExternalLink size={10} />
                                 </a>
                             </div>
 
                             {/* Center: Official Seal */}
                             <div className="text-center hidden md:block">
-                                <div className="w-16 h-16 mx-auto mb-1 rounded-full bg-amber-500/10 border-2 border-dashed border-amber-400/50 flex items-center justify-center text-amber-400 font-black text-xs">
-                                    SEAL OF<br />EXCELLENCE
+                                <div 
+                                    className="w-18 h-18 mx-auto mb-1 rounded-full bg-amber-500/10 border-2 border-dashed border-amber-400/60 p-2 flex flex-col items-center justify-center font-black text-[10px] leading-tight"
+                                    style={{ color: '#fbbf24' }}
+                                >
+                                    <span>CERTIFIED BY</span>
+                                    <span className="text-[11px] text-white">SKILLBRIDGE AI</span>
+                                    <span>★ VERIFIED ★</span>
                                 </div>
-                                <p className="text-[9px] text-gray-500 font-mono uppercase">AUTHENTICATED BY AI</p>
+                                <p className="text-[9px] text-gray-400 font-mono uppercase">OFFICIAL WEBSITE SEAL</p>
                             </div>
 
                             {/* Right: Verification QR Code */}
                             <div className="flex items-center gap-3">
                                 <QRCodeView value={verificationUrl} size={70} />
                                 <div className="text-left text-[10px] font-mono text-gray-400 hidden sm:block">
-                                    <p className="text-white font-bold">Scan to Verify</p>
-                                    <p>Official Credential</p>
-                                    <p>Skill Bridge AI Engine</p>
+                                    <p className="text-white font-bold" style={{ color: '#ffffff' }}>Scan to Verify</p>
+                                    <p>Certified Authenticity</p>
+                                    <p>Skill Bridge AI Registry</p>
                                 </div>
                             </div>
                         </div>

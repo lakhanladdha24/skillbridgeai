@@ -1,8 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, BrainCircuit, Target, AlertTriangle, Calendar, CheckCircle2, ShieldCheck, HelpCircle } from 'lucide-react';
 
+interface CareerPrediction {
+    role: string;
+    match_score: number;
+    confidence: string;
+    explanation: {
+        positive_factors: string[];
+        areas_to_improve: string[];
+    };
+}
+
+interface DailyPlanItem {
+    task: string;
+    duration_mins: number;
+    category: string;
+    priority: string;
+}
+
+interface KnowledgeDecayAlert {
+    skill: string;
+    decayPercent: number;
+    lastPracticedDaysAgo: number;
+    action: string;
+}
+
+interface IntelligenceSummary {
+    overallProficiency: number;
+    careerPredictions: CareerPrediction[];
+    dailyPlan: DailyPlanItem[];
+    knowledgeDecayAlerts: KnowledgeDecayAlert[];
+}
+
 const AIIntelligenceWidget: React.FC = () => {
-    const [summary, setSummary] = useState<any>(null);
+    const [summary, setSummary] = useState<IntelligenceSummary | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     useEffect(() => {
@@ -14,7 +45,7 @@ const AIIntelligenceWidget: React.FC = () => {
             const res = await fetch('/api/ml/intelligence-summary');
             const data = await res.json();
             setSummary(data);
-        } catch (e) {
+        } catch {
             // Fallback mock
             setSummary({
                 overallProficiency: 76.5,
@@ -82,7 +113,7 @@ const AIIntelligenceWidget: React.FC = () => {
                         </h3>
 
                         <div className="space-y-4">
-                            {summary?.careerPredictions?.slice(0, 3).map((cp: any, idx: number) => (
+                            {summary?.careerPredictions?.slice(0, 3).map((cp: CareerPrediction, idx: number) => (
                                 <div key={idx} className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-3">
                                     <div className="flex items-center justify-between">
                                         <span className="font-bold text-white text-base">{cp.role}</span>
@@ -129,13 +160,12 @@ const AIIntelligenceWidget: React.FC = () => {
 
                 {/* Right 5 Cols: Knowledge Decay & Daily Plan */}
                 <div className="lg:col-span-5 space-y-4">
-                    {/* Knowledge Decay Alert Card */}
-                    {summary?.knowledgeDecayAlerts?.length > 0 && (
+                    {summary?.knowledgeDecayAlerts && summary.knowledgeDecayAlerts.length > 0 ? (
                         <div className="glass-card p-6 rounded-3xl border border-yellow-500/20 bg-yellow-500/5 space-y-3">
                             <h3 className="text-sm font-bold text-yellow-400 flex items-center gap-2">
                                 <AlertTriangle size={16} /> Knowledge Tracing & Decay Alert
                             </h3>
-                            {summary.knowledgeDecayAlerts.map((al: any, idx: number) => (
+                            {summary.knowledgeDecayAlerts.map((al: KnowledgeDecayAlert, idx: number) => (
                                 <div key={idx} className="p-3 bg-black/40 rounded-xl border border-yellow-500/20 text-xs space-y-1">
                                     <div className="flex justify-between font-bold text-white">
                                         <span>{al.skill}</span>
@@ -147,7 +177,7 @@ const AIIntelligenceWidget: React.FC = () => {
                                 </div>
                             ))}
                         </div>
-                    )}
+                    ) : null}
 
                     {/* Today's Adaptive Daily Plan */}
                     <div className="glass-card p-6 rounded-3xl border border-white/10 space-y-3">
@@ -156,7 +186,7 @@ const AIIntelligenceWidget: React.FC = () => {
                         </h3>
 
                         <div className="space-y-2">
-                            {summary?.dailyPlan?.map((item: any, idx: number) => (
+                            {summary?.dailyPlan?.map((item: DailyPlanItem, idx: number) => (
                                 <div key={idx} className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between text-xs">
                                     <div className="flex items-center gap-2">
                                         <CheckCircle2 size={14} className="text-primary" />

@@ -19,6 +19,8 @@ export default async function handler(req, res) {
         const goal = (roadmapGoal || 'Software Development').trim();
         const selectedMode = mode || 'explain';
 
+        const groqCandidateModels = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'allam-2-7b', 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+
         if (groq) {
             // Mode 1: EXPLAIN
             if (selectedMode === 'explain') {
@@ -39,17 +41,20 @@ Return strict JSON with this exact schema:
 }
 Return ONLY pure JSON without markdown backticks.`;
 
-                try {
-                    const completion = await groq.chat.completions.create({
-                        messages: [{ role: 'user', content: prompt }],
-                        model: 'groq/compound',
-                        response_format: { type: 'json_object' },
-                        temperature: 0.3
-                    });
-                    const raw = completion.choices[0]?.message?.content;
-                    if (raw) return res.status(200).json(JSON.parse(raw));
-                } catch (e) {
-                    console.warn("Groq serverless explain error:", e.message);
+                for (const model of groqCandidateModels) {
+                    try {
+                        const completion = await groq.chat.completions.create({
+                            messages: [{ role: 'user', content: prompt }],
+                            model,
+                            response_format: { type: 'json_object' },
+                            temperature: 0.3
+                        });
+                        const raw = completion.choices[0]?.message?.content;
+                        if (raw) return res.status(200).json(JSON.parse(raw));
+                    } catch (e) {
+                        console.warn(`Groq serverless explain [${model}] error:`, e.message);
+                        if (e.status === 401) break;
+                    }
                 }
             }
 
@@ -86,17 +91,20 @@ Return strict JSON with this schema:
 }
 Return ONLY pure JSON without markdown backticks.`;
 
-                try {
-                    const completion = await groq.chat.completions.create({
-                        messages: [{ role: 'user', content: prompt }],
-                        model: 'groq/compound',
-                        response_format: { type: 'json_object' },
-                        temperature: 0.3
-                    });
-                    const raw = completion.choices[0]?.message?.content;
-                    if (raw) return res.status(200).json(JSON.parse(raw));
-                } catch (e) {
-                    console.warn("Groq serverless quiz error:", e.message);
+                for (const model of groqCandidateModels) {
+                    try {
+                        const completion = await groq.chat.completions.create({
+                            messages: [{ role: 'user', content: prompt }],
+                            model,
+                            response_format: { type: 'json_object' },
+                            temperature: 0.3
+                        });
+                        const raw = completion.choices[0]?.message?.content;
+                        if (raw) return res.status(200).json(JSON.parse(raw));
+                    } catch (e) {
+                        console.warn(`Groq serverless quiz [${model}] error:`, e.message);
+                        if (e.status === 401) break;
+                    }
                 }
             }
 
@@ -115,17 +123,20 @@ Return strict JSON with schema:
 }
 Return pure JSON only.`;
 
-                try {
-                    const completion = await groq.chat.completions.create({
-                        messages: [{ role: 'user', content: prompt }],
-                        model: 'groq/compound',
-                        response_format: { type: 'json_object' },
-                        temperature: 0.3
-                    });
-                    const raw = completion.choices[0]?.message?.content;
-                    if (raw) return res.status(200).json(JSON.parse(raw));
-                } catch (e) {
-                    console.warn("Groq serverless project error:", e.message);
+                for (const model of groqCandidateModels) {
+                    try {
+                        const completion = await groq.chat.completions.create({
+                            messages: [{ role: 'user', content: prompt }],
+                            model,
+                            response_format: { type: 'json_object' },
+                            temperature: 0.3
+                        });
+                        const raw = completion.choices[0]?.message?.content;
+                        if (raw) return res.status(200).json(JSON.parse(raw));
+                    } catch (e) {
+                        console.warn(`Groq serverless project [${model}] error:`, e.message);
+                        if (e.status === 401) break;
+                    }
                 }
             }
 
@@ -138,21 +149,35 @@ Return pure JSON only.`;
                     { role: 'user', content: userMsg }
                 ];
 
-                try {
-                    const completion = await groq.chat.completions.create({
-                        messages,
-                        model: 'groq/compound',
-                        temperature: 0.5
-                    });
-                    const reply = completion.choices[0]?.message?.content;
-                    return res.status(200).json({ reply });
-                } catch (e) {
-                    console.warn("Groq serverless chat error:", e.message);
+                for (const model of groqCandidateModels) {
+                    try {
+                        const completion = await groq.chat.completions.create({
+                            messages,
+                            model,
+                            temperature: 0.5
+                        });
+                        const reply = completion.choices[0]?.message?.content;
+                        if (reply) return res.status(200).json({ reply });
+                    } catch (e) {
+                        console.warn(`Groq serverless chat [${model}] error:`, e.message);
+                        if (e.status === 401) break;
+                    }
                 }
+
+                return res.status(200).json({
+                    reply: `### AI Tutor: ${topic}\n\nHere is a practical breakdown for **${topic}** in **${goal}**:\n\n1. **Core Concept**: ${topic} is fundamental to building scalable, reliable applications in ${goal}.\n2. **Best Practices**: Focus on separation of concerns, writing clean modular functions, and handling edge cases explicitly.\n3. **Practical Tip**: Implement small, focused test cases and explore concrete examples in the coding lab.\n\n*Feel free to ask more specific questions or request a code snippet!*`
+                });
             }
         }
 
-        // Fallback
+        // Fallback for chat if groq is missing
+        if (selectedMode === 'chat') {
+            return res.status(200).json({
+                reply: `### AI Tutor: ${topic}\n\nHere is a practical breakdown for **${topic}** in **${goal}**:\n\n1. **Core Concept**: ${topic} is fundamental to building scalable, reliable applications in ${goal}.\n2. **Best Practices**: Focus on modular design, clean contracts, and explicit error handling.\n3. **Practical Tip**: Test your concepts with small code snippets in the coding lab.\n\n*Feel free to ask more specific questions or request a code snippet!*`
+            });
+        }
+
+        // Fallback for other modes
         return res.status(200).json({
             topic,
             eli5: `Think of ${topic} like the foundation and plumbing of a house: essential for everything above it to function reliably.`,

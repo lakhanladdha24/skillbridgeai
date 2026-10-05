@@ -5,11 +5,14 @@
  */
 
 import Groq from 'groq-sdk';
+import OpenAI from 'openai';
 import { ROADMAP_CATALOG, getCatalogRoadmap } from './roadmapData.js';
 
 const PYTHON_ML_URL = process.env.PYTHON_ML_URL || 'http://localhost:8000';
 const groqKey = process.env.GROQ_API_KEY || process.env.CHATBOT_API_KEY;
 const groq = groqKey ? new Groq({ apiKey: groqKey }) : null;
+const openaiKey = process.env.OPENAI_API_KEY;
+const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
 export async function predictSkill(params) {
     try {
@@ -173,7 +176,63 @@ Include 3 to 4 phases with 2 to 4 topics per phase. Mark only the very first top
                 }
             }
         } catch (err) {
-            console.warn("Groq dynamic roadmap generation error, falling back to template:", err.message);
+            console.warn("Groq dynamic roadmap generation error, falling back to OpenAI/template:", err.message);
+        }
+    }
+
+    // 2b. Try generating with OpenAI if Groq was not available or failed
+    if (openai) {
+        try {
+            const prompt = `You are a developer curriculum architect from roadmap.sh.
+Generate a structured, authentic developer roadmap for: "${qTitle}".
+The output MUST be strict JSON with this exact structure:
+{
+  "query": "${qTitle}",
+  "title": "${qTitle} Developer Roadmap",
+  "category": "Role-based",
+  "description": "Step by step guide to mastering ${qTitle} in 2026, following the roadmap.sh standard.",
+  "estimated_duration": "5 to 7 months",
+  "semantic_match_score": 98.6,
+  "phases": [
+    {
+      "phaseId": "p1",
+      "title": "Phase 1 — Foundations & Core Concepts",
+      "description": "Core syntax, tools, and prerequisites.",
+      "topics": [
+        {
+          "topicId": "t1",
+          "title": "Topic Title",
+          "description": "Detailed description of what to learn.",
+          "difficulty": "Beginner",
+          "estimatedHours": 15,
+          "completed": true,
+          "recommended": true,
+          "prerequisites": [],
+          "videoQuery": "topic title tutorial full course",
+          "keyConcepts": ["Concept 1", "Concept 2"]
+        }
+      ]
+    }
+  ]
+}
+Include 3 to 4 phases with 2 to 4 topics per phase. Mark only the very first topic as completed: true. Use difficulty values: "Beginner", "Intermediate", "Advanced", "Mastery". Return ONLY pure JSON with no markdown backticks.`;
+
+            const completion = await openai.chat.completions.create({
+                messages: [{ role: 'user', content: prompt }],
+                model: 'gpt-4o-mini',
+                response_format: { type: 'json_object' },
+                temperature: 0.2
+            });
+
+            const content = completion.choices[0]?.message?.content;
+            if (content) {
+                const parsed = JSON.parse(content);
+                if (parsed.phases && parsed.phases.length > 0) {
+                    return parsed;
+                }
+            }
+        } catch (err) {
+            console.warn("OpenAI dynamic roadmap generation error, falling back to template:", err.message);
         }
     }
 

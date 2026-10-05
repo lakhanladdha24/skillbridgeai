@@ -1,23 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import { Search, BookOpen, Code2, Video, X, Sparkles, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toEmbedUrl } from '../components/EmbeddedMaterialModal';
+import { toEmbedUrl } from '../utils/videoResolver';
+
+interface HubVideoItem {
+    videoId: string;
+    title: string;
+    channelTitle?: string;
+    thumbnail?: string;
+    publishedAt?: string;
+    url?: string;
+    embedUrl?: string;
+    category?: string;
+    creator?: string;
+    score?: string;
+    summary?: string;
+}
+
+interface HubResourceItem {
+    type: string;
+    title: string;
+    category: string;
+    difficulty?: string;
+    summary?: string;
+    badge?: string;
+    channelTitle?: string;
+    videoId?: string;
+    url?: string;
+    creator?: string;
+    embedUrl?: string;
+    score?: string;
+    link?: string;
+    videoObj?: HubVideoItem;
+}
 
 const LearningHub: React.FC = () => {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [activeFilter, setActiveFilter] = useState<'All' | 'Study Notes' | 'Videos' | 'Coding Problems'>('All');
-    const [liveVideos, setLiveVideos] = useState<any[]>([]);
+    const [liveVideos, setLiveVideos] = useState<HubVideoItem[]>([]);
     const [isLoadingVideos, setIsLoadingVideos] = useState<boolean>(false);
 
     // Selected Video Modal State
-    const [selectedVideo, setSelectedVideo] = useState<any | null>(null);
+    const [selectedVideo, setSelectedVideo] = useState<HubVideoItem | null>(null);
 
-    useEffect(() => {
-        fetchLiveVideos(searchQuery);
-    }, []);
-
-    const fetchLiveVideos = async (q: string) => {
+    const fetchLiveVideos = React.useCallback(async (q: string) => {
         setIsLoadingVideos(true);
         try {
             const res = await fetch(`/api/videos/recommend?q=${encodeURIComponent(q || 'Python Machine Learning')}`);
@@ -25,19 +52,23 @@ const LearningHub: React.FC = () => {
             if (data.videos) {
                 setLiveVideos(data.videos);
             }
-        } catch (e) {
+        } catch {
             // Keep fallback
         } finally {
             setIsLoadingVideos(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchLiveVideos('');
+    }, [fetchLiveVideos]);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         fetchLiveVideos(searchQuery);
     };
 
-    const sampleResources = [
+    const sampleResources: HubResourceItem[] = [
         {
             type: 'Study Notes',
             title: 'Python Fundamentals & Object-Oriented Programming',
@@ -128,11 +159,11 @@ const LearningHub: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 justify-center">
-                    {['All', 'Study Notes', 'Videos', 'Coding Problems'].map((tab) => (
+                    {(['All', 'Study Notes', 'Videos', 'Coding Problems'] as const).map((tab) => (
                         <button
                             key={tab}
                             type="button"
-                            onClick={() => setActiveFilter(tab as any)}
+                            onClick={() => setActiveFilter(tab)}
                             className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all border ${
                                 activeFilter === tab
                                     ? 'bg-primary text-black border-primary'
@@ -152,7 +183,7 @@ const LearningHub: React.FC = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {filtered.map((item: any, idx: number) => (
+                    {filtered.map((item: HubResourceItem, idx: number) => (
                         <div key={idx} className="glass-card p-6 rounded-3xl border border-white/10 hover:border-primary/50 transition-all flex flex-col justify-between space-y-4">
                             <div>
                                 <div className="flex items-center justify-between gap-2 mb-3">
@@ -175,7 +206,15 @@ const LearningHub: React.FC = () => {
                                 </span>
                                 {item.type === 'Videos' ? (
                                     <button
-                                        onClick={() => setSelectedVideo(item)}
+                                        onClick={() => setSelectedVideo(item.videoObj || {
+                                            videoId: item.videoId || '',
+                                            title: item.title,
+                                            url: item.url,
+                                            embedUrl: item.embedUrl,
+                                            creator: item.creator,
+                                            score: item.score,
+                                            summary: item.summary
+                                        })}
                                         className="px-4 py-2 bg-primary/10 border border-primary/30 text-primary font-bold rounded-xl hover:bg-primary hover:text-black transition-all flex items-center gap-1"
                                     >
                                         <Video size={14} /> Watch Video
@@ -218,7 +257,7 @@ const LearningHub: React.FC = () => {
 
                         <div className="aspect-video w-full rounded-2xl overflow-hidden border border-white/10 bg-black shadow-lg">
                             <iframe
-                                src={toEmbedUrl(selectedVideo.embedUrl || selectedVideo.url)}
+                                src={toEmbedUrl(selectedVideo.embedUrl || selectedVideo.url, selectedVideo.title)}
                                 title={selectedVideo.title}
                                 className="w-full h-full"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

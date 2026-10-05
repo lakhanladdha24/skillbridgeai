@@ -1079,18 +1079,18 @@ console.log('["Bob", "Charlie"]');`,
             cpp: `#include <iostream>
 
 int main() {
-    std::cout << "[\"Bob\", \"Charlie\"]";
+    std::cout << "[\\"Bob\\", \\"Charlie\\"]";
     return 0;
 }`,
             c: `#include <stdio.h>
 
 int main() {
-    printf("[\"Bob\", \"Charlie\"]");
+    printf("[\\"Bob\\", \\"Charlie\\"]");
     return 0;
 }`,
             java: `public class Solution {
     public static void main(String[] args) {
-        System.out.println("[\"Bob\", \"Charlie\"]");
+        System.out.println("[\\"Bob\\", \\"Charlie\\"]");
     }
 }`
         },

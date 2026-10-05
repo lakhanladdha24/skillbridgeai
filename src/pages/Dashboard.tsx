@@ -6,12 +6,13 @@ import { useNavigate } from 'react-router-dom';
 import AIIntelligenceWidget from '../components/AIIntelligenceWidget';
 import CertificateModal from '../components/CertificateModal';
 import { Certificate } from '../types/certificate';
+import { getLocalCertificates, issueCertificate, ALL_COURSES } from '../utils/certificateHelper';
 
 const Dashboard: React.FC = () => {
     const { user, isLoading } = useAuth();
     const navigate = useNavigate();
 
-    const [certificates, setCertificates] = useState<Certificate[]>([]);
+    const [certificates, setCertificates] = useState<Certificate[]>(() => getLocalCertificates());
     const [selectedCert, setSelectedCert] = useState<Certificate | null>(null);
 
     useEffect(() => {
@@ -21,21 +22,33 @@ const Dashboard: React.FC = () => {
     }, [user, isLoading, navigate]);
 
     useEffect(() => {
+        let isCurrent = true;
+
         if (user) {
-            fetchCertificates(user.id);
+            fetch(`/api/certificates?userId=${encodeURIComponent(user.id)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (isCurrent && data.success && data.certificates && data.certificates.length > 0) {
+                        setCertificates(data.certificates);
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching user certificates:', err);
+                });
         }
+        return () => {
+            isCurrent = false;
+        };
     }, [user]);
 
-    const fetchCertificates = async (userId: string) => {
-        try {
-            const res = await fetch(`/api/certificates?userId=${encodeURIComponent(userId)}`);
-            const data = await res.json();
-            if (data.success && data.certificates) {
-                setCertificates(data.certificates);
-            }
-        } catch (e) {
-            console.error('Error fetching user certificates:', e);
-        }
+    const handleQuickGenerateCertificate = async (course: string = 'Frontend Developer') => {
+        const cert = await issueCertificate({
+            userId: user?.id,
+            userName: user?.name,
+            courseName: course
+        });
+        setSelectedCert(cert);
+        setCertificates(getLocalCertificates());
     };
 
     if (isLoading || !user) {
@@ -129,17 +142,86 @@ const Dashboard: React.FC = () => {
                 </button>
             </div>
 
-            {/* MY CERTIFICATES SECTION */}
-            <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
-                        <Award className="text-amber-400" /> My Earned Certificates
-                    </h2>
-                    <span className="text-xs font-mono text-gray-400">
-                        {certificates.length} Verified Credential{certificates.length === 1 ? '' : 's'}
+            {/* MY CERTIFICATES & COURSE ACCREDITATION SYSTEM */}
+            <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
+                            <Award className="text-amber-400" /> My Earned Certificates
+                        </h2>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                            Official verified credentials awarded upon course completion • Certified & Accredited by SkillBridge AI
+                        </p>
+                    </div>
+                    <span className="text-xs font-mono px-3 py-1 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-300 font-bold self-start sm:self-auto">
+                        {certificates.length} of {ALL_COURSES.length} Courses Certified
                     </span>
                 </div>
 
+                {/* Course Accreditations Quick Access */}
+                <div className="glass-card p-5 rounded-3xl border border-white/10 bg-slate-900/60 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <ShieldCheck size={14} className="text-emerald-400" /> SkillBridge AI Course Certifications Catalog
+                        </span>
+                        <span className="text-[11px] text-gray-400">Click any course to claim or view its verified certificate</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                        {ALL_COURSES.map((course) => {
+                            const earned = certificates.find(
+                                (c) => c.courseName.toLowerCase() === course.name.toLowerCase() ||
+                                       c.courseId.toLowerCase().includes(course.slug)
+                            );
+
+                            return (
+                                <div
+                                    key={course.slug}
+                                    className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                                        earned
+                                            ? 'bg-emerald-500/10 border-emerald-500/30'
+                                            : 'bg-white/5 border-white/10 hover:border-amber-400/30'
+                                    }`}
+                                >
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                                                earned
+                                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                                    : 'bg-white/10 text-gray-400'
+                                            }`}>
+                                                {earned ? '✓ CERTIFIED' : 'PENDING'}
+                                            </span>
+                                            <span className="text-[10px] font-mono text-gray-500">{course.code}</span>
+                                        </div>
+                                        <h4 className="text-xs font-bold text-white truncate mt-1">{course.name}</h4>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                                        {earned ? (
+                                            <button
+                                                onClick={() => setSelectedCert(earned)}
+                                                className="px-2.5 py-1.5 bg-primary text-black font-black text-[11px] rounded-lg hover:scale-105 transition-all shadow"
+                                            >
+                                                View
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleQuickGenerateCertificate(course.name)}
+                                                className="px-2.5 py-1.5 bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 font-bold text-[11px] rounded-lg transition-all"
+                                                title="Claim official certified credential for this course"
+                                            >
+                                                Claim
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* EARNED CERTIFICATES GRID */}
                 {certificates.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {certificates.map((cert) => (
@@ -150,14 +232,14 @@ const Dashboard: React.FC = () => {
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-start">
                                         <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                                            <ShieldCheck size={12} /> VERIFIED
+                                            <ShieldCheck size={12} /> CERTIFIED BY SKILLBRIDGE AI
                                         </span>
                                         <span className="text-[10px] font-mono text-amber-400 font-bold">
                                             {cert.certificateId}
                                         </span>
                                     </div>
                                     <h3 className="text-xl font-bold text-white tracking-wide">{cert.courseName}</h3>
-                                    <p className="text-xs text-gray-400 font-mono">Completed on {cert.completionDate}</p>
+                                    <p className="text-xs text-gray-400 font-mono">Issued to {cert.userName} • {cert.completionDate}</p>
                                 </div>
 
                                 <div className="flex items-center gap-2 pt-2 border-t border-white/10">
@@ -170,7 +252,7 @@ const Dashboard: React.FC = () => {
                                     <button
                                         onClick={() => navigate(`/verify/${cert.certificateId}`)}
                                         className="p-2 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all"
-                                        title="Verify Certificate"
+                                        title="Verify Certificate Online"
                                     >
                                         <ExternalLink size={16} />
                                     </button>
@@ -185,14 +267,22 @@ const Dashboard: React.FC = () => {
                         </div>
                         <h3 className="text-lg font-bold text-white">No Certificates Earned Yet</h3>
                         <p className="text-xs text-gray-400 max-w-md mx-auto">
-                            Complete all YouTube video topics in a course roadmap to automatically generate your official Skill Bridge AI Certificate.
+                            Complete all curriculum topics in any course roadmap to earn your official verified SkillBridge AI Certificate certified by our website.
                         </p>
-                        <button
-                            onClick={() => navigate('/career-path')}
-                            className="px-5 py-2.5 bg-primary text-black font-black text-xs rounded-xl shadow-lg hover:scale-105 transition-all inline-flex items-center gap-2"
-                        >
-                            <Compass size={16} /> Explore Courses & Earn Certificate
-                        </button>
+                        <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
+                            <button
+                                onClick={() => handleQuickGenerateCertificate('Frontend Developer')}
+                                className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-black text-xs rounded-xl shadow-lg hover:scale-105 transition-all inline-flex items-center gap-2 cursor-pointer"
+                            >
+                                <Award size={16} /> Claim Frontend Certificate
+                            </button>
+                            <button
+                                onClick={() => navigate('/career-path')}
+                                className="px-5 py-2.5 bg-white/10 text-white font-bold text-xs rounded-xl border border-white/10 hover:bg-white/20 transition-all inline-flex items-center gap-2 cursor-pointer"
+                            >
+                                <Compass size={16} /> Explore Course Roadmaps
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
@@ -235,7 +325,7 @@ const Dashboard: React.FC = () => {
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {defaultSkills.map((sk: any, i: number) => (
+                        {defaultSkills.map((sk: { name: string; level?: string; score?: number; category?: string }, i: number) => (
                             <motion.div
                                 key={i}
                                 initial={{ opacity: 0, y: 10 }}

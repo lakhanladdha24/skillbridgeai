@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ShieldCheck, AlertCircle, Award, CheckCircle2, Search, ArrowLeft, Calendar, User, BookOpen } from 'lucide-react';
 import { Certificate } from '../types/certificate';
 import QRCodeView from '../components/QRCodeView';
+import { getLocalCertificates } from '../utils/certificateHelper';
 
 export const CertificateVerify: React.FC = () => {
     const { certificateId: paramCertId } = useParams<{ certificateId: string }>();
@@ -14,38 +15,56 @@ export const CertificateVerify: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (paramCertId) {
-            verifyCertificate(paramCertId);
-        }
-    }, [paramCertId]);
+        let isMounted = true;
+        if (!paramCertId) return;
 
-    const verifyCertificate = async (id: string) => {
-        if (!id || !id.trim()) return;
-        setLoading(true);
-        setError(null);
-        setCertificate(null);
+        const cleanId = paramCertId.trim();
+        if (!cleanId) return;
 
-        try {
-            const res = await fetch(`/api/certificates/verify/${encodeURIComponent(id.trim())}`);
-            const data = await res.json();
+        const executeVerification = async () => {
+            setLoading(true);
+            setError(null);
+            setCertificate(null);
 
-            if (data.valid && data.certificate) {
-                setCertificate(data.certificate);
-            } else {
-                setError(data.error || 'Certificate not found or invalid certificate ID.');
+            try {
+                const res = await fetch(`/api/certificates/verify/${encodeURIComponent(cleanId)}`);
+                const data = await res.json();
+
+                if (!isMounted) return;
+
+                if (data.valid && data.certificate) {
+                    setCertificate(data.certificate);
+                    setLoading(false);
+                    return;
+                }
+            } catch {
+                // fallback to local check
             }
-        } catch (e) {
-            setError('Failed to reach verification server. Please check your connection.');
-        } finally {
+
+            if (!isMounted) return;
+
+            // Local storage fallback for offline / immediate client verification
+            const localList = getLocalCertificates();
+            const localMatch = localList.find(c => c.certificateId.toLowerCase() === cleanId.toLowerCase());
+            if (localMatch) {
+                setCertificate(localMatch);
+            } else {
+                setError(`Certificate ID "${cleanId}" not found or not yet registered. Please check the credential code and try again.`);
+            }
             setLoading(false);
-        }
-    };
+        };
+
+        void executeVerification();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [paramCertId]);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (searchId.trim()) {
             navigate(`/verify/${searchId.trim()}`);
-            verifyCertificate(searchId.trim());
         }
     };
 

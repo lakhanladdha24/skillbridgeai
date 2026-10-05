@@ -12,39 +12,82 @@ interface AnswerRecord {
     isMarkedForReview: boolean;
 }
 
+interface CategoryScore {
+    category: string;
+    score: number;
+    total: number;
+    percentage: number;
+}
+
+interface SkillProfile {
+    skill: string;
+    percentage: number;
+    level: string;
+}
+
+interface AnalysisResultData {
+    totalQuestions?: number;
+    score: number;
+    maxScore?: number;
+    percentage: number;
+    accuracy?: number;
+    totalTimeSpent?: number;
+    timeSpentSeconds?: number;
+    avgTimePerQuestion?: number;
+    classification?: string;
+    correctAnswers?: number;
+    incorrectAnswers?: number;
+    unattempted?: number;
+    categoryScores?: CategoryScore[];
+    skillProfiles?: SkillProfile[];
+    strongSkills?: string[];
+    weakSkills?: string[];
+    missingSkills?: string[];
+    recommendedSkills?: string[];
+    recommendedFocus?: string[];
+    isAiAnalyzed?: boolean;
+}
+
 const STORAGE_KEY = 'skillbridge_assessment_v2_state';
+
+function getInitialAssessmentState() {
+    try {
+        const saved = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0 && !parsed.isSubmitted) {
+                return {
+                    started: true,
+                    questions: parsed.questions,
+                    currentIndex: parsed.currentIndex || 0,
+                    answers: parsed.answers || {},
+                    timerSeconds: parsed.timerSeconds || 3000,
+                };
+            }
+        }
+    } catch {
+        // Ignore parse errors
+    }
+    return {
+        started: false,
+        questions: [],
+        currentIndex: 0,
+        answers: {},
+        timerSeconds: 3000,
+    };
+}
 
 const SkillTest: React.FC = () => {
     const navigate = useNavigate();
 
-    // Mode state
-    const [started, setStarted] = useState<boolean>(false);
-    const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
-    const [currentIndex, setCurrentIndex] = useState<number>(0);
-    const [answers, setAnswers] = useState<Record<number, AnswerRecord>>({});
-    const [timerSeconds, setTimerSeconds] = useState<number>(3000); // 50 mins default (60s per Q)
+    const [savedInit] = useState(getInitialAssessmentState);
+    const [started, setStarted] = useState<boolean>(savedInit.started);
+    const [questions, setQuestions] = useState<AssessmentQuestion[]>(savedInit.questions);
+    const [currentIndex, setCurrentIndex] = useState<number>(savedInit.currentIndex);
+    const [answers, setAnswers] = useState<Record<number, AnswerRecord>>(savedInit.answers);
+    const [timerSeconds, setTimerSeconds] = useState<number>(savedInit.timerSeconds);
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
-    const [analysisResult, setAnalysisResult] = useState<any>(null);
-
-    // Filter questions by distribution if needed
-    useEffect(() => {
-        // Load stored state on mount if present
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                if (parsed && parsed.questions && parsed.questions.length > 0 && !parsed.isSubmitted) {
-                    setQuestions(parsed.questions);
-                    setAnswers(parsed.answers || {});
-                    setCurrentIndex(parsed.currentIndex || 0);
-                    setTimerSeconds(parsed.timerSeconds || 3000);
-                    setStarted(true);
-                }
-            } catch (e) {
-                // Ignore parse errors
-            }
-        }
-    }, []);
+    const [analysisResult, setAnalysisResult] = useState<AnalysisResultData | null>(null);
 
     // Save state on change
     useEffect(() => {
@@ -58,6 +101,105 @@ const SkillTest: React.FC = () => {
             }));
         }
     }, [started, questions, answers, currentIndex, timerSeconds, isSubmitted]);
+
+    const computeLocalResult = React.useCallback((_answerList: AnswerRecord[], timeSpent: number, qList: AssessmentQuestion[], ansMap: Record<number, AnswerRecord>) => {
+        let score = 0;
+        let correctCount = 0;
+        let incorrectCount = 0;
+        let unattemptedCount = 0;
+
+        const categoryStats: Record<string, { score: number; total: number }> = {};
+        const skillMap: Record<string, { score: number; total: number }> = {};
+
+        qList.forEach((q) => {
+            const cat = q.category;
+            const sk = q.skill;
+            if (!categoryStats[cat]) categoryStats[cat] = { score: 0, total: 0 };
+            if (!skillMap[sk]) skillMap[sk] = { score: 0, total: 0 };
+
+            categoryStats[cat].total += 1;
+            skillMap[sk].total += 1;
+
+            const userAns = ansMap[q.id]?.selectedOption;
+            if (!userAns) {
+                unattemptedCount += 1;
+            } else if (userAns === q.correctAnswer) {
+                score += 1;
+                correctCount += 1;
+                categoryStats[cat].score += 1;
+                skillMap[sk].score += 1;
+            } else {
+                incorrectCount += 1;
+            }
+        });
+
+        const percentage = Math.round((score / Math.max(qList.length, 1)) * 100);
+        const categoryScores: CategoryScore[] = Object.keys(categoryStats).map((cat) => ({
+            category: cat,
+            score: categoryStats[cat].score,
+            total: categoryStats[cat].total,
+            percentage: Math.round((categoryStats[cat].score / categoryStats[cat].total) * 100)
+        }));
+
+        const skillProfiles: SkillProfile[] = Object.keys(skillMap).map((sk) => {
+            const pct = Math.round((skillMap[sk].score / skillMap[sk].total) * 100);
+            let level = 'Beginner';
+            if (pct >= 90) level = 'Professional';
+            else if (pct >= 80) level = 'Advanced';
+            else if (pct >= 70) level = 'Upper Intermediate';
+            else if (pct >= 55) level = 'Intermediate';
+            else if (pct >= 40) level = 'Elementary';
+            return { skill: sk, percentage: pct, level };
+        });
+
+        const strongSkills = skillProfiles.filter((s) => s.percentage >= 70).map((s) => s.skill);
+        const weakSkills = skillProfiles.filter((s) => s.percentage < 70).map((s) => s.skill);
+
+        setAnalysisResult({
+            totalQuestions: qList.length,
+            score,
+            percentage,
+            correctAnswers: correctCount,
+            incorrectAnswers: incorrectCount,
+            unattempted: unattemptedCount,
+            timeSpentSeconds: timeSpent,
+            categoryScores,
+            skillProfiles,
+            strongSkills,
+            weakSkills,
+            missingSkills: ["System Design", "Cloud Computing"],
+            recommendedSkills: [...weakSkills, "System Design"].slice(0, 5)
+        });
+    }, []);
+
+    const handleFinalSubmit = React.useCallback(async () => {
+        setIsSubmitted(true);
+        localStorage.removeItem(STORAGE_KEY);
+
+        const answerList = Object.values(answers);
+        const totalTimeSpent = 3000 - timerSeconds;
+
+        try {
+            const res = await fetch('/api/assessment/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: 'local_user',
+                    answers: answerList,
+                    questions,
+                    timeSpentSeconds: totalTimeSpent
+                })
+            });
+            const data = await res.json();
+            if (data.success && data.analysis) {
+                setAnalysisResult(data.analysis);
+            } else {
+                computeLocalResult(answerList, totalTimeSpent, questions, answers);
+            }
+        } catch {
+            computeLocalResult(answerList, totalTimeSpent, questions, answers);
+        }
+    }, [answers, timerSeconds, questions, computeLocalResult]);
 
     // Timer effect
     useEffect(() => {
@@ -75,7 +217,7 @@ const SkillTest: React.FC = () => {
             }, 1000);
         }
         return () => clearInterval(interval);
-    }, [started, isSubmitted, timerSeconds]);
+    }, [started, isSubmitted, timerSeconds, handleFinalSubmit]);
 
     const startAssessment = () => {
         // Select 50 balanced questions from assessmentBank
@@ -122,106 +264,7 @@ const SkillTest: React.FC = () => {
         }));
     };
 
-    const handleFinalSubmit = async () => {
-        setIsSubmitted(true);
-        localStorage.removeItem(STORAGE_KEY);
 
-        // Convert answers dict to array format
-        const answerList = Object.values(answers);
-        const totalTimeSpent = 3000 - timerSeconds;
-
-        try {
-            const res = await fetch('/api/assessment/submit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: 'local_user',
-                    answers: answerList,
-                    questions,
-                    timeSpentSeconds: totalTimeSpent
-                })
-            });
-            const data = await res.json();
-            if (data.success && data.analysis) {
-                setAnalysisResult(data.analysis);
-            } else {
-                // Fallback client-side score computation if backend unreachable
-                computeLocalResult(answerList, totalTimeSpent);
-            }
-        } catch (e) {
-            computeLocalResult(answerList, totalTimeSpent);
-        }
-    };
-
-    const computeLocalResult = (_answerList: AnswerRecord[], timeSpent: number) => {
-        let score = 0;
-        let correctCount = 0;
-        let incorrectCount = 0;
-        let unattemptedCount = 0;
-
-        const categoryStats: Record<string, { score: number; total: number }> = {};
-        const skillMap: Record<string, { score: number; total: number }> = {};
-
-        questions.forEach((q) => {
-            const cat = q.category;
-            const sk = q.skill;
-            if (!categoryStats[cat]) categoryStats[cat] = { score: 0, total: 0 };
-            if (!skillMap[sk]) skillMap[sk] = { score: 0, total: 0 };
-
-            categoryStats[cat].total += 1;
-            skillMap[sk].total += 1;
-
-            const userAns = answers[q.id]?.selectedOption;
-            if (!userAns) {
-                unattemptedCount += 1;
-            } else if (userAns === q.correctAnswer) {
-                score += 1;
-                correctCount += 1;
-                categoryStats[cat].score += 1;
-                skillMap[sk].score += 1;
-            } else {
-                incorrectCount += 1;
-            }
-        });
-
-        const percentage = Math.round((score / Math.max(questions.length, 1)) * 100);
-        const categoryScores = Object.keys(categoryStats).map((cat) => ({
-            category: cat,
-            score: categoryStats[cat].score,
-            total: categoryStats[cat].total,
-            percentage: Math.round((categoryStats[cat].score / categoryStats[cat].total) * 100)
-        }));
-
-        const skillProfiles = Object.keys(skillMap).map((sk) => {
-            const pct = Math.round((skillMap[sk].score / skillMap[sk].total) * 100);
-            let level = 'Beginner';
-            if (pct >= 90) level = 'Professional';
-            else if (pct >= 80) level = 'Advanced';
-            else if (pct >= 70) level = 'Upper Intermediate';
-            else if (pct >= 55) level = 'Intermediate';
-            else if (pct >= 40) level = 'Elementary';
-            return { skill: sk, percentage: pct, level };
-        });
-
-        const strongSkills = skillProfiles.filter((s) => s.percentage >= 70).map((s) => s.skill);
-        const weakSkills = skillProfiles.filter((s) => s.percentage < 70).map((s) => s.skill);
-
-        setAnalysisResult({
-            totalQuestions: questions.length,
-            score,
-            percentage,
-            correctAnswers: correctCount,
-            incorrectAnswers: incorrectCount,
-            unattempted: unattemptedCount,
-            timeSpentSeconds: timeSpent,
-            categoryScores,
-            skillProfiles,
-            strongSkills,
-            weakSkills,
-            missingSkills: ["System Design", "Cloud Computing"],
-            recommendedSkills: [...weakSkills, "System Design"].slice(0, 5)
-        });
-    };
 
     const formatTime = (secs: number) => {
         const mins = Math.floor(secs / 60);
@@ -315,7 +358,7 @@ const SkillTest: React.FC = () => {
                             <BarChart2 className="text-primary" size={20} /> Category Performance
                         </h3>
                         <div className="space-y-4">
-                            {analysisResult.categoryScores?.map((cat: any) => (
+                            {analysisResult.categoryScores?.map((cat: CategoryScore) => (
                                 <div key={cat.category}>
                                     <div className="flex justify-between text-sm mb-1 font-semibold">
                                         <span>{cat.category}</span>
@@ -337,7 +380,7 @@ const SkillTest: React.FC = () => {
                             <Zap className="text-secondary" size={20} /> Classified Skill Levels
                         </h3>
                         <div className="space-y-3">
-                            {analysisResult.skillProfiles?.map((sk: any) => (
+                            {analysisResult.skillProfiles?.map((sk: SkillProfile) => (
                                 <div key={sk.skill} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                                     <span className="font-semibold text-sm">{sk.skill}</span>
                                     <div className="flex items-center gap-3">

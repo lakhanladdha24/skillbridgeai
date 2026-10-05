@@ -16,7 +16,8 @@ SkillBridgeAI is a next-generation career growth platform that uses AI to bridge
 - **Backend**: Node.js (Express) for local use, Vercel Serverless Functions for production.
 - **Database**: MongoDB (Atlas)
 - **AI Providers**: 
-  - **Groq**: Fastest inference using Llama 3 models (Primary local).
+  - **OpenAI**: GPT-4o-mini and GPT-4o for chat mentorship, dynamic roadmap generation, and topic tutoring.
+  - **Groq**: Fast inference using Llama 3 models.
   - **Google Gemini**: Robust backup/production model.
 
 ## 🚀 Deployment on Vercel
@@ -24,7 +25,8 @@ SkillBridgeAI is a next-generation career growth platform that uses AI to bridge
 1. **Push to GitHub**.
 2. **Connect to Vercel**: Import your repository.
 3. **Environment Variables**: Add these in Vercel Settings:
-   - `GROQ_API_KEY`: (Recommended) Get from [Groq Console](https://console.groq.com).
+   - `OPENAI_API_KEY`: Get from [OpenAI Platform](https://platform.openai.com/api-keys).
+   - `GROQ_API_KEY`: Get from [Groq Console](https://console.groq.com).
    - `GEMINI_API_KEY`: (Fallback) Get from [Google AI Studio](https://aistudio.google.com).
    - `MONGODB_URI`: Your MongoDB connection string.
    - `JWT_SECRET`: A secure string for auth.
@@ -37,7 +39,7 @@ SkillBridgeAI is a next-generation career growth platform that uses AI to bridge
    ```
 2. **Configure Environment**:
    - Create a `.env` file in the root and in `backend/` directory.
-   - Add your API keys (GROQ or GEMINI) and MONGODB_URI.
+   - Add your API keys (`OPENAI_API_KEY`, `GROQ_API_KEY`, or `GEMINI_API_KEY`) and `MONGODB_URI`.
 3. **Run the full app (Frontend + Backend)**:
    ```bash
    npm run start

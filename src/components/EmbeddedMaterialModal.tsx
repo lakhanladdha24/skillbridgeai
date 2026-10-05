@@ -4,33 +4,84 @@ import {
     X, Video, FileText, Download, Code2, CheckCircle2, 
     ExternalLink, Rocket, Bookmark, Play, ArrowRight, Clock,
     Sparkles, MessageSquare, HelpCircle, Check, AlertCircle,
-    Send, BookOpen, Trophy, Star
+    Send, BookOpen, Trophy, Star, Award
 } from 'lucide-react';
 import { FlowchartNode } from './VisualFlowchart';
 
-export function toEmbedUrl(urlStr?: string, topicTitle?: string): string {
-    if (urlStr && urlStr.includes("embed/")) {
-        const videoIdMatch = urlStr.match(/embed\/([a-zA-Z0-9_-]{11})/);
-        if (videoIdMatch && videoIdMatch[1]) {
-            return `https://www.youtube.com/embed/${videoIdMatch[1]}?enablejsapi=1`;
-        }
-        return urlStr;
-    }
+import { 
+    toSafeEmbedUrl, 
+    toDirectWatchUrl, 
+    getVerifiedVideosForTopic,
+    toEmbedUrl
+} from '../utils/videoResolver';
 
-    if (urlStr) {
-        const watchMatch = urlStr.match(/(?:v=|\/v\/|embed\/|youtu\.be\/|\/shorts\/)([a-zA-Z0-9_-]{11})/);
-        if (watchMatch && watchMatch[1]) {
-            return `https://www.youtube.com/embed/${watchMatch[1]}?enablejsapi=1`;
-        }
-    }
+export interface QuizQuestionItem {
+    id: number;
+    question: string;
+    options: string[];
+    correctIndex: number;
+    explanation: string;
+}
 
-    const cleanTopic = (topicTitle || 'Software Engineering').trim();
-    return `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(cleanTopic + " tutorial")}`;
+export interface QuizDataModel {
+    topic: string;
+    questions: QuizQuestionItem[];
+}
+
+export interface ProjectChallengeModel {
+    title: string;
+    difficulty: string;
+    estimatedTime: string;
+    objective: string;
+    userStories: string[];
+    starterFiles: string[];
+    bonusChallenge?: string;
+}
+
+export interface VideoItemModel {
+    videoId?: string;
+    id?: string;
+    title?: string;
+    channel?: string;
+    creator?: string;
+    duration?: string;
+    url?: string;
+    embedUrl?: string;
+    qualityBadge?: string;
+    score?: string;
+    ratingText?: string;
+    summary?: string;
+}
+
+export interface ArticleItemModel {
+    source: string;
+    title: string;
+    url: string;
+    badge?: string;
+}
+
+export interface AiExplanationModel {
+    topic: string;
+    eli5: string;
+    technical: string;
+    architecture: string;
+    codeSnippet?: string;
+    bestPractices?: string[];
 }
 
 interface EmbeddedMaterialModalProps {
     node: FlowchartNode | null;
-    studyData: any;
+    studyData: {
+        videos?: VideoItemModel[];
+        articles?: ArticleItemModel[];
+        studyNotes?: {
+            definition?: string;
+            explanation?: string;
+            codeExample?: string;
+            pdfGuide?: { title?: string; markdownContent?: string };
+        };
+        practiceProblems?: Array<{ id: string; title: string; difficulty: string; url: string }>;
+    } | null;
     isLoading: boolean;
     onClose: () => void;
     onToggleComplete: (nodeId: string) => void;
@@ -39,6 +90,7 @@ interface EmbeddedMaterialModalProps {
     userId?: string;
     nextTopic?: FlowchartNode | null;
     onSelectNextTopic?: (next: FlowchartNode) => void;
+    onClaimCertificate?: () => void;
     initialTab?: 'video' | 'ai' | 'article' | 'pdf' | 'practice';
 }
 
@@ -53,20 +105,39 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
     userId = 'user_default',
     nextTopic,
     onSelectNextTopic,
+    onClaimCertificate,
     initialTab = 'video'
 }) => {
     const [activeTab, setActiveTab] = useState<'video' | 'ai' | 'article' | 'pdf' | 'practice'>('video');
     const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
+    const [isLocallyCompleted, setIsLocallyCompleted] = useState<boolean>(node?.completed || false);
+
+    useEffect(() => {
+        setIsLocallyCompleted(node?.completed || false);
+    }, [node?.id, node?.completed]);
+
+    const isTopicDone = isLocallyCompleted || Boolean(node?.completed);
     
     // Video selection & progress state
     const [selectedVideoIndex, setSelectedVideoIndex] = useState<number>(0);
     const [watchProgress, setWatchProgress] = useState<number>(0);
     const [isSimulatingWatch, setIsSimulatingWatch] = useState<boolean>(false);
 
+    const handleToggleDone = () => {
+        if (!node) return;
+        const nextStatus = !isTopicDone;
+        setIsLocallyCompleted(nextStatus);
+        if (nextStatus) {
+            setWatchProgress(100);
+            saveProgressToBackend(currentVideo, 100);
+        }
+        onToggleComplete(node.id);
+    };
+
     // AI Tutor States
     const [aiSubTab, setAiSubTab] = useState<'explain' | 'chat' | 'quiz' | 'project'>('explain');
     const [aiExplainDepth, setAiExplainDepth] = useState<'eli5' | 'technical' | 'architecture'>('technical');
-    const [aiExplanation, setAiExplanation] = useState<any>(null);
+    const [aiExplanation, setAiExplanation] = useState<AiExplanationModel | null>(null);
     const [isLoadingAiExplain, setIsLoadingAiExplain] = useState<boolean>(false);
     
     // AI Chat State
@@ -75,32 +146,16 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
     const [isAiReplying, setIsAiReplying] = useState<boolean>(false);
 
     // AI Quiz State
-    const [quizData, setQuizData] = useState<any>(null);
+    const [quizData, setQuizData] = useState<QuizDataModel | null>(null);
     const [isLoadingQuiz, setIsLoadingQuiz] = useState<boolean>(false);
     const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
     const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
 
     // AI Project State
-    const [projectData, setProjectData] = useState<any>(null);
+    const [projectData, setProjectData] = useState<ProjectChallengeModel | null>(null);
     const [isLoadingProject, setIsLoadingProject] = useState<boolean>(false);
 
-    useEffect(() => {
-        if (node) {
-            setSelectedVideoIndex(0);
-            setWatchProgress(node.completed ? 100 : 0);
-            setIsSimulatingWatch(false);
-            setActiveTab(initialTab);
-            setAiSubTab('explain');
-            setChatMessages([]);
-            setQuizAnswers({});
-            setQuizSubmitted(false);
-
-            // Fetch AI Explanation for the node automatically
-            fetchAiExplanation(node.title);
-        }
-    }, [node]);
-
-    const fetchAiExplanation = async (title: string) => {
+    const fetchAiExplanation = React.useCallback(async (title: string) => {
         setIsLoadingAiExplain(true);
         try {
             const res = await fetch('/api/ai/learn-topic', {
@@ -114,12 +169,31 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
             });
             const data = await res.json();
             setAiExplanation(data);
-        } catch (e) {
+        } catch {
             setAiExplanation(null);
         } finally {
             setIsLoadingAiExplain(false);
         }
-    };
+    }, [courseId]);
+
+    useEffect(() => {
+        if (node) {
+            setSelectedVideoIndex(0);
+            setWatchProgress(node.completed ? 100 : 0);
+            setIsLocallyCompleted(Boolean(node.completed));
+            setIsSimulatingWatch(false);
+            setActiveTab(initialTab);
+            setAiSubTab('explain');
+            setChatMessages([]);
+            setQuizAnswers({});
+            setQuizSubmitted(false);
+            setAiExplanation(null);
+            setQuizData(null);
+            setProjectData(null);
+
+            fetchAiExplanation(node.title);
+        }
+    }, [node, initialTab, fetchAiExplanation]);
 
     const handleLoadQuiz = async () => {
         if (!node || quizData) return;
@@ -136,7 +210,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
             });
             const data = await res.json();
             setQuizData(data);
-        } catch (e) {
+        } catch {
             setQuizData(null);
         } finally {
             setIsLoadingQuiz(false);
@@ -158,7 +232,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
             });
             const data = await res.json();
             setProjectData(data);
-        } catch (e) {
+        } catch {
             setProjectData(null);
         } finally {
             setIsLoadingProject(false);
@@ -190,7 +264,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
             if (data.reply) {
                 setChatMessages([...newHistory, { role: 'assistant', content: data.reply }]);
             }
-        } catch (e) {
+        } catch {
             setChatMessages([...newHistory, { role: 'assistant', content: 'Apologies, could not connect to AI Tutor. Please try again.' }]);
         } finally {
             setIsAiReplying(false);
@@ -199,8 +273,14 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
 
     if (!node) return null;
 
-    const videosList = studyData?.videos || [];
-    const currentVideo = videosList[selectedVideoIndex] || videosList[0];
+    const verifiedFallback = getVerifiedVideosForTopic(node.title);
+    const rawVideos = (studyData?.videos && studyData.videos.length > 0) ? studyData.videos : verifiedFallback;
+    const videosList: VideoItemModel[] = rawVideos.map((v: VideoItemModel) => ({
+        ...v,
+        embedUrl: toSafeEmbedUrl(v.embedUrl || v.url, node.title),
+        url: toDirectWatchUrl(v.url || v.embedUrl, node.title)
+    }));
+    const currentVideo = videosList[selectedVideoIndex] || videosList[0] || verifiedFallback[0];
 
     // Handle Watch Progress Simulation / Timer
     const handleStartWatch = () => {
@@ -208,7 +288,8 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
         const interval = setInterval(() => {
             setWatchProgress((prev) => {
                 const next = prev + 15;
-                if (next >= 90 && !node.completed) {
+                if (next >= 90 && !isTopicDone) {
+                    setIsLocallyCompleted(true);
                     onToggleComplete(node.id);
                     saveProgressToBackend(currentVideo, 100);
                 }
@@ -223,7 +304,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
         }, 1000);
     };
 
-    const saveProgressToBackend = async (vid: any, progressPercent: number) => {
+    const saveProgressToBackend = async (vid: VideoItemModel, progressPercent: number) => {
         if (!vid) return;
         const videoId = vid.videoId || vid.url?.split('v=')[1] || 'vid_default';
         try {
@@ -240,7 +321,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                     durationSeconds: 1200
                 })
             });
-        } catch (e) {
+        } catch {
             // ignore network errors in fallback
         }
     };
@@ -249,7 +330,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
     const calculateQuizScore = () => {
         if (!quizData?.questions) return 0;
         let correct = 0;
-        quizData.questions.forEach((q: any) => {
+        quizData.questions.forEach((q: QuizQuestionItem) => {
             if (quizAnswers[q.id] === q.correctIndex) {
                 correct += 1;
             }
@@ -302,18 +383,16 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                             </button>
 
                             <button
-                                onClick={() => {
-                                    onToggleComplete(node.id);
-                                    if (!node.completed) setWatchProgress(100);
-                                }}
-                                className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
-                                    node.completed
+                                type="button"
+                                onClick={handleToggleDone}
+                                className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                                    isTopicDone
                                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30'
                                         : 'bg-primary text-black font-black hover:bg-primary/90 shadow-lg shadow-primary/20'
                                 }`}
                             >
                                 <CheckCircle2 size={16} />
-                                {node.completed ? 'Completed ✓' : 'Mark as Done'}
+                                {isTopicDone ? 'Completed ✓' : 'Mark as Done'}
                             </button>
 
                             <button
@@ -336,7 +415,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                         ].map(tab => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
+                                onClick={() => setActiveTab(tab.id as 'video' | 'ai' | 'article' | 'pdf' | 'practice')}
                                 className={`py-3 px-4 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
                                     activeTab === tab.id
                                         ? 'text-primary border-primary font-black'
@@ -369,7 +448,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                         <span className="text-[10px] font-mono text-gray-400 uppercase font-bold mr-2">
                                             Select Course Video:
                                         </span>
-                                        {videosList.map((vid: any, idx: number) => (
+                                        {videosList.map((vid: VideoItemModel, idx: number) => (
                                             <button
                                                 key={idx}
                                                 onClick={() => setSelectedVideoIndex(idx)}
@@ -393,9 +472,37 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                                 src={toEmbedUrl(currentVideo?.embedUrl || currentVideo?.url, node.title)}
                                                 title={currentVideo?.title || node.title}
                                                 className="w-full h-full"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                                 allowFullScreen
                                             />
+                                        </div>
+
+                                        {/* Secondary Player Bar: Video Switcher and Direct Link */}
+                                        <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs font-mono">
+                                            <div className="flex items-center gap-2">
+                                                {videosList.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedVideoIndex((prev) => (prev + 1) % videosList.length)}
+                                                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-primary border border-primary/20 text-xs font-bold transition-all flex items-center gap-1.5"
+                                                    >
+                                                        <Video size={13} /> Switch Source Video ({selectedVideoIndex + 1}/{videosList.length}) ➔
+                                                    </button>
+                                                )}
+                                                <span className="text-gray-400 text-[11px] hidden sm:inline">
+                                                    Ad-free YouTube playback
+                                                </span>
+                                            </div>
+
+                                            <a
+                                                href={toDirectWatchUrl(currentVideo?.url || currentVideo?.embedUrl, node.title)}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold flex items-center gap-1.5 transition-all"
+                                                title="Watch directly on YouTube in a new tab"
+                                            >
+                                                <ExternalLink size={13} /> Watch directly on YouTube ↗
+                                            </a>
                                         </div>
 
                                         {/* Watch Progress & Control Bar */}
@@ -418,24 +525,27 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                                     </div>
                                                 </div>
 
-                                                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                                                <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleToggleDone}
+                                                        className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                                                            isTopicDone
+                                                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30'
+                                                                : 'bg-emerald-500 hover:bg-emerald-400 text-black font-black shadow-lg shadow-emerald-500/20'
+                                                        }`}
+                                                    >
+                                                        <CheckCircle2 size={15} />
+                                                        {isTopicDone ? 'Completed ✓' : 'Mark as Done'}
+                                                    </button>
                                                     <button
                                                         onClick={handleStartWatch}
                                                         disabled={isSimulatingWatch || watchProgress >= 100}
-                                                        className="w-full md:w-auto px-5 py-2.5 bg-gradient-to-r from-primary to-secondary text-black font-black rounded-xl text-xs shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                                        className="px-4 py-2.5 bg-gradient-to-r from-primary to-secondary text-black font-black rounded-xl text-xs shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                                     >
                                                         <Play size={14} fill="black" />
-                                                        {watchProgress >= 100 ? 'Completed ✓' : isSimulatingWatch ? 'Tracking Progress...' : 'Simulate Video Progress'}
+                                                        {watchProgress >= 100 ? '100% Watched' : isSimulatingWatch ? 'Tracking...' : 'Simulate Video Progress'}
                                                     </button>
-
-                                                    <a
-                                                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(node.title + " tutorial")}`}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="text-[11px] text-red-400 hover:underline font-mono flex items-center gap-1"
-                                                    >
-                                                        Watch on YouTube <ExternalLink size={10} />
-                                                    </a>
                                                 </div>
                                             </div>
 
@@ -457,12 +567,12 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* Next Topic Recommendation */}
-                                        {(node.completed || watchProgress >= 90) && nextTopic && (
+                                        {/* Next Topic / Course Completed Recommendation */}
+                                        {(isTopicDone || watchProgress >= 90) && (
                                             <motion.div
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
-                                                className="p-5 bg-gradient-to-r from-emerald-500/20 via-primary/20 to-transparent border border-emerald-500/40 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4"
+                                                className="p-5 bg-gradient-to-r from-emerald-500/20 via-primary/20 to-amber-500/20 border border-emerald-500/40 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4"
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 font-bold">
@@ -473,19 +583,31 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                                             ✓ TOPIC COMPLETED
                                                         </span>
                                                         <h4 className="font-bold text-white text-sm">
-                                                            Next Topic: {nextTopic.title}
+                                                            {nextTopic && nextTopic.id !== node.id ? `Next Topic: ${nextTopic.title}` : `Curriculum Topic Mastered!`}
                                                         </h4>
                                                     </div>
                                                 </div>
 
-                                                {onSelectNextTopic && (
-                                                    <button
-                                                        onClick={() => onSelectNextTopic(nextTopic)}
-                                                        className="px-5 py-2.5 bg-emerald-400 text-black font-black text-xs rounded-xl shadow-lg hover:scale-105 transition-all flex items-center gap-2 whitespace-nowrap"
-                                                    >
-                                                        Watch Next Topic <ArrowRight size={14} />
-                                                    </button>
-                                                )}
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    {nextTopic && nextTopic.id !== node.id && onSelectNextTopic && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onSelectNextTopic(nextTopic)}
+                                                            className="px-4 py-2 bg-emerald-400 hover:bg-emerald-300 text-black font-black text-xs rounded-xl shadow-lg hover:scale-105 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                                                        >
+                                                            Watch Next Topic <ArrowRight size={14} />
+                                                        </button>
+                                                    )}
+                                                    {onClaimCertificate && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={onClaimCertificate}
+                                                            className="px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-black text-xs rounded-xl shadow-lg hover:scale-105 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                                                        >
+                                                            <Award size={14} /> Claim Certificate
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </motion.div>
                                         )}
                                     </>
@@ -509,7 +631,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                         <button
                                             key={sub.id}
                                             onClick={() => {
-                                                setAiSubTab(sub.id as any);
+                                                setAiSubTab(sub.id as 'explain' | 'chat' | 'quiz' | 'project');
                                                 if (sub.onSelect) sub.onSelect();
                                             }}
                                             className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-2 ${
@@ -538,7 +660,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                             ].map(d => (
                                                 <button
                                                     key={d.id}
-                                                    onClick={() => setAiExplainDepth(d.id as any)}
+                                                    onClick={() => setAiExplainDepth(d.id as 'eli5' | 'technical' | 'architecture')}
                                                     className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
                                                         aiExplainDepth === d.id
                                                             ? 'bg-primary text-black font-black'
@@ -734,7 +856,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                                 )}
 
                                                 {/* Question Cards */}
-                                                {quizData.questions.map((q: any, qIdx: number) => {
+                                                {quizData.questions.map((q: QuizQuestionItem, qIdx: number) => {
                                                     const selected = quizAnswers[q.id];
                                                     const isCorrect = selected === q.correctIndex;
 
@@ -890,7 +1012,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {studyData?.articles?.map((art: any, i: number) => (
+                                    {studyData?.articles?.map((art: ArticleItemModel, i: number) => (
                                         <a
                                             key={i}
                                             href={art.url}

@@ -8,6 +8,7 @@ import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import Groq from 'groq-sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import connectDB from './db.js';
 import User from './models/User.js';
 import { logLearningEvent, getUserEvents } from './services/eventLogger.js';
@@ -40,6 +41,10 @@ const groq = groqKey ? new Groq({ apiKey: groqKey }) : null;
 // Initialize Gemini fallback
 const geminiKey = process.env.GEMINI_API_KEY;
 const genAI = geminiKey ? new GoogleGenerativeAI(geminiKey) : null;
+
+// Initialize OpenAI
+const openaiKey = process.env.OPENAI_API_KEY;
+const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
 // In-memory fallback user store for when MongoDB is disconnected
 const localUsers = new Map();
@@ -187,9 +192,43 @@ app.post('/api/chat', async (req, res) => {
         }
     }
 
-    // Provider 2: Groq
+    // Provider 2: OpenAI
+    if (openai) {
+        const openaiModels = ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'];
+        const messages = [
+            { role: "system", content: SYSTEM_PROMPT },
+            ...(history || [])
+                .filter(msg => msg.content && !msg.content.startsWith('AI Error') && !msg.content.startsWith('Groq Error') && !msg.content.startsWith('Sorry,'))
+                .map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'assistant',
+                    content: msg.content
+                })),
+            { role: "user", content: message }
+        ];
+
+        for (const modelName of openaiModels) {
+            try {
+                const completion = await openai.chat.completions.create({
+                    messages,
+                    model: modelName,
+                    temperature: 0.5,
+                    max_tokens: 2048,
+                });
+
+                const reply = completion.choices[0]?.message?.content || "";
+                if (reply) {
+                    return res.status(200).json({ reply });
+                }
+            } catch (error) {
+                console.error(`OpenAI Model [${modelName}] Error:`, error.message);
+                if (error.status === 401) break;
+            }
+        }
+    }
+
+    // Provider 3: Groq
     if (groq) {
-        const groqModels = ['groq/compound', 'openai/gpt-oss-120b', 'groq/compound-mini', 'qwen/qwen3.6-27b', 'llama-3.3-70b-versatile'];
+        const groqModels = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'allam-2-7b', 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
         const messages = [
             { role: "system", content: SYSTEM_PROMPT },
             ...(history || [])
@@ -221,7 +260,7 @@ app.post('/api/chat', async (req, res) => {
         }
     }
 
-    // Provider 3: Gemini
+    // Provider 4: Gemini
     if (genAI) {
         try {
             const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
@@ -236,12 +275,13 @@ app.post('/api/chat', async (req, res) => {
 
     // Fallback: Informative response if AI keys aren't operational
     return res.status(200).json({
-        reply: `**SkillBridgeAI Assistant (Offline Mode)**\n\nI received your query: "${message}".\n\nTo enable live AI responses, please ensure a valid \`NVIDIA_API_KEY\`, \`GROQ_API_KEY\`, or \`GEMINI_API_KEY\` is configured in your \`.env\` file.`
+        reply: `**SkillBridgeAI Assistant (Offline Mode)**\n\nI received your query: "${message}".\n\nTo enable live AI responses, please ensure a valid \`OPENAI_API_KEY\`, \`GROQ_API_KEY\`, \`NVIDIA_API_KEY\`, or \`GEMINI_API_KEY\` is configured in your \`.env\` file.`
     });
 });
 
 app.get('/api/debug-env', (req, res) => {
     res.json({
+        has_openai_key: !!openaiKey,
         has_groq_key: !!groqKey,
         has_gemini_key: !!geminiKey,
         has_mongodb_uri: !!process.env.MONGODB_URI,
@@ -362,6 +402,80 @@ app.post('/api/roadmap/generate', async (req, res) => {
     }
 });
 
+async function executeLlmJson(prompt, temperature = 0.3) {
+    if (groq) {
+        const groqCandidateModels = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'allam-2-7b', 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+        for (const model of groqCandidateModels) {
+            try {
+                const completion = await groq.chat.completions.create({
+                    messages: [{ role: 'user', content: prompt }],
+                    model,
+                    response_format: { type: 'json_object' },
+                    temperature
+                });
+                const raw = completion.choices[0]?.message?.content;
+                if (raw) return JSON.parse(raw);
+            } catch (e) {
+                console.warn(`Groq JSON [${model}] error:`, e.message);
+                if (e.status === 401) break;
+            }
+        }
+    }
+
+    if (openai) {
+        try {
+            const completion = await openai.chat.completions.create({
+                messages: [{ role: 'user', content: prompt }],
+                model: 'gpt-4o-mini',
+                response_format: { type: 'json_object' },
+                temperature
+            });
+            const raw = completion.choices[0]?.message?.content;
+            if (raw) return JSON.parse(raw);
+        } catch (e) {
+            console.warn("OpenAI JSON error:", e.message);
+        }
+    }
+
+    return null;
+}
+
+async function executeLlmChat(messages, temperature = 0.5) {
+    if (groq) {
+        const groqCandidateModels = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'allam-2-7b', 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+        for (const model of groqCandidateModels) {
+            try {
+                const completion = await groq.chat.completions.create({
+                    messages,
+                    model,
+                    temperature
+                });
+                const reply = completion.choices[0]?.message?.content;
+                if (reply) return reply;
+            } catch (e) {
+                console.warn(`Groq Chat [${model}] error:`, e.message);
+                if (e.status === 401) break;
+            }
+        }
+    }
+
+    if (openai) {
+        try {
+            const completion = await openai.chat.completions.create({
+                messages,
+                model: 'gpt-4o-mini',
+                temperature
+            });
+            const reply = completion.choices[0]?.message?.content;
+            if (reply) return reply;
+        } catch (e) {
+            console.warn("OpenAI Chat error:", e.message);
+        }
+    }
+
+    return null;
+}
+
 // --- LEARN WITH AI (ROADMAP.SH AI TUTOR API) ---
 app.post('/api/ai/learn-topic', async (req, res) => {
     try {
@@ -370,10 +484,9 @@ app.post('/api/ai/learn-topic', async (req, res) => {
         const goal = (roadmapGoal || 'Software Development').trim();
         const selectedMode = mode || 'explain';
 
-        if (groq) {
-            // Mode 1: EXPLAIN (ELI5, Technical, Architecture, Code)
-            if (selectedMode === 'explain') {
-                const prompt = `You are a world-class computer science educator like roadmap.sh.
+        // Mode 1: EXPLAIN (ELI5, Technical, Architecture, Code)
+        if (selectedMode === 'explain') {
+            const prompt = `You are a world-class computer science educator like roadmap.sh.
 Explain the topic: "${topic}" in the context of "${goal}".
 Return strict JSON with this exact schema:
 {
@@ -390,25 +503,13 @@ Return strict JSON with this exact schema:
 }
 Return ONLY pure JSON without markdown backticks.`;
 
-                try {
-                    const completion = await groq.chat.completions.create({
-                        messages: [{ role: 'user', content: prompt }],
-                        model: 'groq/compound',
-                        response_format: { type: 'json_object' },
-                        temperature: 0.3
-                    });
-                    const raw = completion.choices[0]?.message?.content;
-                    if (raw) {
-                        return res.json(JSON.parse(raw));
-                    }
-                } catch (e) {
-                    console.warn("Groq explain error:", e.message);
-                }
-            }
+            const parsed = await executeLlmJson(prompt, 0.3);
+            if (parsed) return res.json(parsed);
+        }
 
-            // Mode 2: QUIZ (3 interactive multiple-choice questions)
-            if (selectedMode === 'quiz') {
-                const prompt = `You are an expert technical interviewer from roadmap.sh.
+        // Mode 2: QUIZ (3 interactive multiple-choice questions)
+        if (selectedMode === 'quiz') {
+            const prompt = `You are an expert technical interviewer from roadmap.sh.
 Generate 3 challenging multiple-choice questions testing comprehension of: "${topic}".
 Return strict JSON with this schema:
 {
@@ -439,25 +540,13 @@ Return strict JSON with this schema:
 }
 Return ONLY pure JSON without markdown backticks.`;
 
-                try {
-                    const completion = await groq.chat.completions.create({
-                        messages: [{ role: 'user', content: prompt }],
-                        model: 'groq/compound',
-                        response_format: { type: 'json_object' },
-                        temperature: 0.3
-                    });
-                    const raw = completion.choices[0]?.message?.content;
-                    if (raw) {
-                        return res.json(JSON.parse(raw));
-                    }
-                } catch (e) {
-                    console.warn("Groq quiz error:", e.message);
-                }
-            }
+            const parsed = await executeLlmJson(prompt, 0.3);
+            if (parsed) return res.json(parsed);
+        }
 
-            // Mode 3: PROJECT CHALLENGE
-            if (selectedMode === 'project') {
-                const prompt = `Generate a realistic hands-on engineering project challenge for topic: "${topic}".
+        // Mode 3: PROJECT CHALLENGE
+        if (selectedMode === 'project') {
+            const prompt = `Generate a realistic hands-on engineering project challenge for topic: "${topic}".
 Return strict JSON with schema:
 {
   "title": "Project Title",
@@ -470,45 +559,28 @@ Return strict JSON with schema:
 }
 Return pure JSON only.`;
 
-                try {
-                    const completion = await groq.chat.completions.create({
-                        messages: [{ role: 'user', content: prompt }],
-                        model: 'groq/compound',
-                        response_format: { type: 'json_object' },
-                        temperature: 0.3
-                    });
-                    const raw = completion.choices[0]?.message?.content;
-                    if (raw) {
-                        return res.json(JSON.parse(raw));
-                    }
-                } catch (e) {
-                    console.warn("Groq project error:", e.message);
-                }
-            }
+            const parsed = await executeLlmJson(prompt, 0.3);
+            if (parsed) return res.json(parsed);
+        }
 
-            // Mode 4: INTERACTIVE CHAT / DOUBT SOLVING
-            if (selectedMode === 'chat') {
-                const userMsg = userQuestion || 'Can you summarize the most important parts of this topic?';
-                const systemPrompt = `You are the friendly, expert AI Tutor from roadmap.sh helping a developer learn "${topic}" in the "${goal}" roadmap. Be concise, practical, and provide concrete code snippets where applicable. Format nicely in Markdown.`;
+        // Mode 4: INTERACTIVE CHAT / DOUBT SOLVING
+        if (selectedMode === 'chat') {
+            const userMsg = userQuestion || 'Can you summarize the most important parts of this topic?';
+            const systemPrompt = `You are the friendly, expert AI Tutor from roadmap.sh helping a developer learn "${topic}" in the "${goal}" roadmap. Be concise, practical, and provide concrete code snippets where applicable. Format nicely in Markdown.`;
 
-                const messages = [
-                    { role: 'system', content: systemPrompt },
-                    ...(Array.isArray(history) ? history.slice(-4) : []),
-                    { role: 'user', content: userMsg }
-                ];
+            const messages = [
+                { role: 'system', content: systemPrompt },
+                ...(Array.isArray(history) ? history.slice(-4) : []),
+                { role: 'user', content: userMsg }
+            ];
 
-                try {
-                    const completion = await groq.chat.completions.create({
-                        messages,
-                        model: 'groq/compound',
-                        temperature: 0.5
-                    });
-                    const reply = completion.choices[0]?.message?.content;
-                    return res.json({ reply });
-                } catch (e) {
-                    console.warn("Groq chat error:", e.message);
-                }
-            }
+            const reply = await executeLlmChat(messages, 0.5);
+            if (reply) return res.json({ reply });
+
+            // Intelligent fallback response if external API is unreachable
+            return res.json({
+                reply: `### AI Tutor: ${topic}\n\nHere is a practical breakdown for **${topic}** in **${goal}**:\n\n1. **Core Concept**: ${topic} is fundamental to building scalable, reliable applications in ${goal}.\n2. **Best Practices**: Focus on separation of concerns, writing clean modular functions, and handling edge cases explicitly.\n3. **Practical Tip**: Implement small, focused test cases and explore concrete examples in the coding lab.\n\n*Feel free to ask more specific questions or request a code snippet!*`
+            });
         }
 
         // Offline / Fallback Responses
@@ -679,10 +751,21 @@ app.post('/api/courses/completion', async (req, res) => {
 // --- AUTOMATIC CERTIFICATE GENERATION & VERIFICATION ---
 app.post('/api/certificates/generate', async (req, res) => {
     try {
-        const { userId, userName, courseId, courseName } = req.body;
-        const certificate = await generateCertificateForUser({ userId, userName, courseId, courseName });
+        const { userId, userName, courseId, courseName } = req.body || {};
+        const safeCourseName = (courseName || 'Software Engineering').trim();
+        const safeUserId = userId || 'usr_guest';
+        const safeCourseId = courseId || `course_${safeCourseName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+        const safeUserName = (userName || 'Skill Bridge AI Graduate').trim();
+
+        const certificate = await generateCertificateForUser({
+            userId: safeUserId,
+            userName: safeUserName,
+            courseId: safeCourseId,
+            courseName: safeCourseName
+        });
         res.json({ success: true, certificate });
     } catch (err) {
+        console.error('Certificate generation error in route:', err.message);
         res.status(500).json({ error: err.message });
     }
 });

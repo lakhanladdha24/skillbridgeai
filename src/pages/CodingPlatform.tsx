@@ -6,6 +6,24 @@ import {
     BookOpen, Lightbulb, Search, Filter, RotateCcw, Trash2
 } from 'lucide-react';
 
+interface TestCaseResult {
+    testCaseIndex: number;
+    input: string;
+    expectedOutput?: string;
+    actualOutput?: string;
+    passed: boolean;
+}
+
+interface CodeExecutionResult {
+    status: string;
+    message: string;
+    results: TestCaseResult[];
+    totalPassed?: number;
+    totalTests?: number;
+    executionTimeMs?: number;
+    memoryKb?: number;
+}
+
 const CodingPlatform: React.FC = () => {
     const [selectedProblem, setSelectedProblem] = useState<CodingProblem>(leetcodeProblems[0]);
     const [selectedLanguage, setSelectedLanguage] = useState<string>('python');
@@ -16,7 +34,7 @@ const CodingPlatform: React.FC = () => {
     const [consoleActiveTab, setConsoleActiveTab] = useState<'testcases' | 'custom' | 'result'>('testcases');
     const [customInput, setCustomInput] = useState<string>('');
     const [isExecuting, setIsExecuting] = useState<boolean>(false);
-    const [executionResult, setExecutionResult] = useState<any>(null);
+    const [executionResult, setExecutionResult] = useState<CodeExecutionResult | null>(null);
 
     // Search and Filters
     const [searchQuery, setSearchQuery] = useState<string>('');
@@ -63,10 +81,10 @@ const CodingPlatform: React.FC = () => {
             });
             const data = await res.json();
             setExecutionResult(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             setExecutionResult({
                 status: 'Runtime Error',
-                message: err.message || 'Execution service error',
+                message: (err as Error).message || 'Execution service error',
                 results: []
             });
         } finally {
@@ -93,10 +111,10 @@ const CodingPlatform: React.FC = () => {
             });
             const data = await res.json();
             setExecutionResult(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             setExecutionResult({
                 status: 'Runtime Error',
-                message: err.message || 'Submission service error',
+                message: (err as Error).message || 'Submission service error',
                 results: []
             });
         } finally {
@@ -461,7 +479,7 @@ const CodingPlatform: React.FC = () => {
                                         {/* Detailed Results List */}
                                         {executionResult.results?.length > 0 && (
                                             <div className="space-y-2">
-                                                {executionResult.results.map((r: any, idx: number) => (
+                                                {executionResult.results.map((r: TestCaseResult, idx: number) => (
                                                     <div key={idx} className="p-3 bg-white/5 rounded-xl border border-white/5 font-mono text-xs flex items-center justify-between">
                                                         <div className="flex items-center gap-2">
                                                             {r.passed ? <span className="text-green-400 font-bold">✓ Pass</span> : <span className="text-red-400 font-bold">✗ Fail</span>}
