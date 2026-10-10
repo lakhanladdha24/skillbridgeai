@@ -90,7 +90,6 @@ interface EmbeddedMaterialModalProps {
     userId?: string;
     nextTopic?: FlowchartNode | null;
     onSelectNextTopic?: (next: FlowchartNode) => void;
-    onClaimCertificate?: () => void;
     initialTab?: 'video' | 'ai' | 'article' | 'pdf' | 'practice';
 }
 
@@ -105,7 +104,6 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
     userId = 'user_default',
     nextTopic,
     onSelectNextTopic,
-    onClaimCertificate,
     initialTab = 'video'
 }) => {
     const [activeTab, setActiveTab] = useState<'video' | 'ai' | 'article' | 'pdf' | 'practice'>('video');
@@ -589,7 +587,7 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                                 </div>
 
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    {nextTopic && nextTopic.id !== node.id && onSelectNextTopic && (
+                                                    {nextTopic && nextTopic.id !== node.id && onSelectNextTopic ? (
                                                         <button
                                                             type="button"
                                                             onClick={() => onSelectNextTopic(nextTopic)}
@@ -597,15 +595,10 @@ const EmbeddedMaterialModal: React.FC<EmbeddedMaterialModalProps> = ({
                                                         >
                                                             Watch Next Topic <ArrowRight size={14} />
                                                         </button>
-                                                    )}
-                                                    {onClaimCertificate && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={onClaimCertificate}
-                                                            className="px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-black text-xs rounded-xl shadow-lg hover:scale-105 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-                                                        >
-                                                            <Award size={14} /> Claim Certificate
-                                                        </button>
+                                                    ) : (
+                                                        <div className="text-[11px] font-mono text-amber-400/90 bg-amber-400/10 px-3 py-1.5 rounded-xl border border-amber-400/20 flex items-center gap-1.5">
+                                                            <Award size={13} /> Complete all stages & submit full course to earn certificate
+                                                        </div>
                                                     )}
                                                 </div>
                                             </motion.div>

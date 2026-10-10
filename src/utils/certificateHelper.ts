@@ -1,6 +1,7 @@
-import { Certificate } from '../types/certificate';
+import { Certificate, CertificateTheme } from '../types/certificate';
 
 const STORAGE_KEY = 'sb_certificates';
+const THEME_STORAGE_KEY = 'sb_certificate_theme';
 
 export const ALL_COURSES = [
     { name: 'Frontend Developer', slug: 'frontend', code: 'FRON' },
@@ -52,6 +53,62 @@ export function saveLocalCertificate(cert: Certificate): void {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
     } catch {
         // ignore storage errors
+    }
+}
+
+/**
+ * Check if the full course has been officially submitted by the student
+ */
+export function isCourseSubmitted(courseGoal: string): boolean {
+    try {
+        const key = `sb_course_submitted_${courseGoal.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+        if (localStorage.getItem(key) === 'true') {
+            return true;
+        }
+        // Also check if certificate already exists in local ledger
+        const certs = getLocalCertificates();
+        const courseId = `course_${courseGoal.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+        return certs.some(c => c.courseId === courseId || c.courseName.toLowerCase() === courseGoal.toLowerCase());
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Mark a full course as officially submitted
+ */
+export function markCourseSubmitted(courseGoal: string): void {
+    try {
+        const key = `sb_course_submitted_${courseGoal.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+        localStorage.setItem(key, 'true');
+    } catch {
+        // ignore
+    }
+}
+
+/**
+ * Get preferred certificate visual theme
+ */
+export function getSavedCertificateTheme(): CertificateTheme {
+    try {
+        const saved = localStorage.getItem(THEME_STORAGE_KEY) as CertificateTheme;
+        if (saved === 'dark' || saved === 'light' || saved === 'grey') {
+            return saved;
+        }
+        return 'dark';
+    } catch {
+        return 'dark';
+    }
+}
+
+/**
+ * Save preferred certificate visual theme
+ */
+export function saveCertificateTheme(theme: CertificateTheme): void {
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+        // ignore
     }
 }
 

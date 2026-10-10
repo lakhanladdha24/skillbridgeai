@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ShieldCheck, AlertCircle, Award, CheckCircle2, Search, ArrowLeft, Calendar, User, BookOpen } from 'lucide-react';
 import { Certificate } from '../types/certificate';
 import QRCodeView from '../components/QRCodeView';
+import CertificateModal from '../components/CertificateModal';
 import { getLocalCertificates } from '../utils/certificateHelper';
 
 export const CertificateVerify: React.FC = () => {
@@ -13,6 +14,7 @@ export const CertificateVerify: React.FC = () => {
     const [certificate, setCertificate] = useState<Certificate | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [showCertModal, setShowCertModal] = useState<boolean>(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -191,13 +193,22 @@ export const CertificateVerify: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* QR Code & Link */}
+                    {/* QR Code & Action Bar */}
                     <div className="p-6 rounded-2xl bg-gradient-to-r from-primary/10 via-secondary/10 to-transparent border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
-                        <div className="space-y-1 text-center md:text-left">
-                            <h4 className="font-bold text-white text-base">Verified Public Record</h4>
-                            <p className="text-xs text-gray-400">
-                                This credential has been cryptographically signed and stored in the Skill Bridge AI verification database.
-                            </p>
+                        <div className="space-y-3 text-center md:text-left">
+                            <div>
+                                <h4 className="font-bold text-white text-base">Verified Public Record</h4>
+                                <p className="text-xs text-gray-400">
+                                    This credential has been cryptographically signed and stored in the Skill Bridge AI verification database.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowCertModal(true)}
+                                className="px-5 py-2.5 bg-gradient-to-r from-primary via-secondary to-accent text-black font-black text-xs rounded-xl shadow-lg hover:scale-105 transition-all inline-flex items-center gap-2 cursor-pointer"
+                            >
+                                <Award size={15} /> View & Customize Certificate (Dark / Light / Grey)
+                            </button>
                         </div>
 
                         <div className="flex-shrink-0">
@@ -205,6 +216,14 @@ export const CertificateVerify: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Certificate Modal */}
+            {showCertModal && certificate && (
+                <CertificateModal
+                    certificate={certificate}
+                    onClose={() => setShowCertModal(false)}
+                />
             )}
         </div>
     );

@@ -1,3 +1,5 @@
+export type CertificateTheme = 'dark' | 'light' | 'grey';
+
 export interface Certificate {
     certificateId: string;
     userId: string;
@@ -9,6 +11,7 @@ export interface Certificate {
     verificationToken?: string;
     certificateFileUrl?: string;
     status: 'VALID' | 'REVOKED' | 'EXPIRED';
+    theme?: CertificateTheme;
 }
 
 export interface VideoProgress {

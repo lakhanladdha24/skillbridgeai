@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Compass, Play, Award, Video, Bot, Layers } from 'lucide-react';
+import { Sparkles, Compass, Play, Award, Video, Bot, Layers, Lock, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import VisualFlowchart, { FlowchartNode } from '../components/VisualFlowchart';
 import EmbeddedMaterialModal from '../components/EmbeddedMaterialModal';
@@ -8,7 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Certificate } from '../types/certificate';
 import { CLIENT_ROADMAP_CATALOG, getClientCatalogRoadmap } from '../data/roadmapData';
 import { getVerifiedVideosForTopic, toSafeEmbedUrl } from '../utils/videoResolver';
-import { issueCertificate, getCourseCompletedTopicIds, saveCourseCompletedTopicIds } from '../utils/certificateHelper';
+import { issueCertificate, getCourseCompletedTopicIds, saveCourseCompletedTopicIds, isCourseSubmitted, markCourseSubmitted } from '../utils/certificateHelper';
 
 interface TopicNode {
     topicId: string;
@@ -105,6 +105,11 @@ const RoadmapView: React.FC = () => {
     // Certificate State & Ceremony
     const [generatedCertificate, setGeneratedCertificate] = useState<Certificate | null>(null);
     const [showCertificateModal, setShowCertificateModal] = useState<boolean>(false);
+    const [submissionVersion, setSubmissionVersion] = useState<number>(0);
+    const [showSubmitConfirmModal, setShowSubmitConfirmModal] = useState<boolean>(false);
+    const [showLockedAlert, setShowLockedAlert] = useState<string | null>(null);
+
+    const isSubmitted = React.useMemo(() => isCourseSubmitted(roadmapData.goal), [roadmapData.goal, submissionVersion]);
 
     // Global Roadmap AI Assistant Modal
     const [showGlobalAiModal, setShowGlobalAiModal] = useState<boolean>(false);
@@ -276,8 +281,28 @@ const RoadmapView: React.FC = () => {
             setGeneratedCertificate(cert);
             setShowCertificateModal(true);
         } catch (e) {
-            console.error('Certificate Auto Generation Error:', e);
+            console.error('Certificate Generation Error:', e);
         }
+    };
+
+    const handleConfirmSubmitCourse = async () => {
+        markCourseSubmitted(roadmapData.goal);
+        setSubmissionVersion((v) => v + 1);
+        setShowSubmitConfirmModal(false);
+        await triggerCertificateGeneration(roadmapData.goal);
+    };
+
+    const handleViewCertificate = async () => {
+        if (!isCourseSubmitted(roadmapData.goal)) {
+            if (roadmapData.completionPercentage < 100) {
+                setShowLockedAlert(`Course Incomplete: You have completed ${completedCount} of ${totalTopicsCount} topics (${roadmapData.completionPercentage}%). Complete all stages and submit the full course to claim your certificate.`);
+                return;
+            } else {
+                setShowSubmitConfirmModal(true);
+                return;
+            }
+        }
+        await triggerCertificateGeneration(roadmapData.goal);
     };
 
     const toggleTopicComplete = (nodeId: string) => {
@@ -313,11 +338,6 @@ const RoadmapView: React.FC = () => {
 
             const newPercentage = Math.round((done / Math.max(total, 1)) * 100);
 
-            // Automatically trigger official certificate whenever course reaches 100%
-            if (newPercentage === 100 && prev.completionPercentage < 100) {
-                triggerCertificateGeneration(prev.goal);
-            }
-
             return {
                 ...prev,
                 completionPercentage: newPercentage,
@@ -344,7 +364,8 @@ const RoadmapView: React.FC = () => {
             phases: updatedPhases
         }));
 
-        triggerCertificateGeneration(roadmapData.goal);
+        // Prompt user to submit full course
+        setShowSubmitConfirmModal(true);
     };
 
     const roleRoadmaps = [
@@ -561,32 +582,56 @@ const RoadmapView: React.FC = () => {
                                 <Sparkles size={14} /> Learn with AI
                             </button>
 
-                            <button
-                                type="button"
-                                onClick={() => triggerCertificateGeneration(roadmapData.goal)}
-                                className={`py-2.5 px-3.5 rounded-xl font-black text-xs shadow-md hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer ${
-                                    roadmapData.completionPercentage === 100
-                                        ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-black shadow-amber-500/20'
-                                        : 'bg-white/10 hover:bg-amber-400 hover:text-black text-amber-400 border border-amber-400/30'
-                                }`}
-                                title="View or Claim Official Verified Certificate"
-                            >
-                                <Award size={15} /> {roadmapData.completionPercentage === 100 ? 'View Certificate' : 'Claim Certificate'}
-                            </button>
+                            {isSubmitted ? (
+                                <button
+                                    type="button"
+                                    onClick={handleViewCertificate}
+                                    className="py-2.5 px-3.5 rounded-xl font-black text-xs bg-gradient-to-r from-emerald-400 to-teal-400 text-black shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer"
+                                    title="View Official Verified Certificate"
+                                >
+                                    <Award size={15} /> View Certificate
+                                </button>
+                            ) : roadmapData.completionPercentage === 100 ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowSubmitConfirmModal(true)}
+                                    className="py-2.5 px-3.5 rounded-xl font-black text-xs bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-black shadow-lg shadow-amber-500/25 hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer animate-pulse"
+                                    title="Submit Full Course to Claim Certificate"
+                                >
+                                    <Award size={15} /> Submit Course
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={handleViewCertificate}
+                                    className="py-2.5 px-3.5 rounded-xl font-bold text-xs bg-white/5 hover:bg-white/10 text-gray-400 border border-white/10 flex items-center gap-1.5 cursor-pointer transition-all"
+                                    title="Certificate locked until full course completion and submission"
+                                >
+                                    <Lock size={14} className="text-amber-400/80" /> Locked ({completedCount}/{totalTopicsCount})
+                                </button>
+                            )}
                         </div>
 
-                        {roadmapData.completionPercentage < 100 ? (
+                        {isSubmitted ? (
+                            <div className="w-full py-2 px-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] rounded-xl text-center font-bold flex items-center justify-center gap-1.5">
+                                <ShieldCheck size={14} /> Full Course Submitted & Certified by SkillBridge AI
+                            </div>
+                        ) : roadmapData.completionPercentage === 100 ? (
+                            <button
+                                type="button"
+                                onClick={() => setShowSubmitConfirmModal(true)}
+                                className="w-full py-2 px-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-black text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg hover:scale-[1.01]"
+                            >
+                                <Award size={14} /> Submit Full Course for Certification
+                            </button>
+                        ) : (
                             <button
                                 type="button"
                                 onClick={handleCompleteCourseAndCertify}
                                 className="w-full py-2 px-3 bg-amber-400/10 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 font-bold text-[11px] rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                             >
-                                <Award size={13} className="text-amber-400" /> Complete Entire Course & Get Certified
+                                <Award size={13} className="text-amber-400" /> Complete Entire Course & Submit
                             </button>
-                        ) : (
-                            <div className="w-full py-1.5 px-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] rounded-xl text-center font-bold">
-                                ✓ Certified by SkillBridge AI Official Registry
-                            </div>
                         )}
                     </div>
                 </div>
@@ -614,7 +659,6 @@ const RoadmapView: React.FC = () => {
                 userId={user?.id}
                 nextTopic={modalNextTopic}
                 onSelectNextTopic={(next) => handleOpenTopic(next, 'video')}
-                onClaimCertificate={() => triggerCertificateGeneration(roadmapData.goal)}
                 initialTab={modalInitialTab}
             />
 
@@ -624,6 +668,87 @@ const RoadmapView: React.FC = () => {
                     certificate={generatedCertificate}
                     onClose={() => setShowCertificateModal(false)}
                 />
+            )}
+
+            {/* Full Course Submission Confirmation Modal */}
+            {showSubmitConfirmModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+                    <div className="w-full max-w-lg glass-card p-6 md:p-8 rounded-3xl border border-amber-400/30 bg-gray-950 text-white space-y-5 shadow-2xl relative">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-2xl bg-amber-400/20 text-amber-400 flex items-center justify-center">
+                                <Award size={26} />
+                            </div>
+                            <div>
+                                <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-widest">
+                                    Official Course Submission
+                                </span>
+                                <h3 className="text-xl font-black text-white">Submit Full Course for Certification</h3>
+                            </div>
+                        </div>
+
+                        <p className="text-xs text-gray-300 leading-relaxed">
+                            You have completed and mastered all curriculum stages for <strong className="text-white">{roadmapData.goal}</strong>. Submitting will register your completion in the SkillBridge AI Official Ledger and unlock your verified certificate with selectable themes (Dark, Light, Grey).
+                        </p>
+
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2 text-xs font-mono">
+                            <div className="flex justify-between text-gray-400">
+                                <span>Course Curriculum:</span>
+                                <span className="text-white font-bold">{roadmapData.goal}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-400">
+                                <span>Total Stages Mastered:</span>
+                                <span className="text-emerald-400 font-bold">{totalTopicsCount} of {totalTopicsCount} (100%)</span>
+                            </div>
+                            <div className="flex justify-between text-gray-400">
+                                <span>Candidate Name:</span>
+                                <span className="text-white font-bold">{user?.name || user?.email?.split('@')[0] || 'Skill Bridge AI Graduate'}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-400">
+                                <span>Verification Engine:</span>
+                                <span className="text-cyan-400 font-bold">SkillBridge Cryptographic Ledger</span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowSubmitConfirmModal(false)}
+                                className="flex-1 py-3 bg-white/10 hover:bg-white/15 text-gray-300 rounded-xl text-xs font-bold transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirmSubmitCourse}
+                                className="flex-1 py-3 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-black text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                                <Award size={15} /> Confirm & Submit Course
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Course Incomplete Locked Alert Modal */}
+            {showLockedAlert && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+                    <div className="w-full max-w-md glass-card p-6 rounded-3xl border border-white/10 bg-gray-950 text-white space-y-4 shadow-2xl text-center">
+                        <div className="w-12 h-12 rounded-full bg-amber-400/20 text-amber-400 flex items-center justify-center mx-auto">
+                            <Lock size={24} />
+                        </div>
+                        <h3 className="text-lg font-black text-white">Full Course Required</h3>
+                        <p className="text-xs text-gray-300 leading-relaxed">
+                            {showLockedAlert}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setShowLockedAlert(null)}
+                            className="w-full py-2.5 bg-primary text-black font-black text-xs rounded-xl shadow-md hover:bg-primary/90 transition-all cursor-pointer"
+                        >
+                            Understood, Keep Learning
+                        </button>
+                    </div>
+                </div>
             )}
 
             {/* Global Roadmap "Learn with AI" Modal */}

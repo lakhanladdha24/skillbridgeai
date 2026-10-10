@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import AIIntelligenceWidget from '../components/AIIntelligenceWidget';
 import CertificateModal from '../components/CertificateModal';
 import { Certificate } from '../types/certificate';
-import { getLocalCertificates, issueCertificate, ALL_COURSES } from '../utils/certificateHelper';
+import { getLocalCertificates, ALL_COURSES } from '../utils/certificateHelper';
 
 const Dashboard: React.FC = () => {
     const { user, isLoading } = useAuth();
@@ -41,14 +41,8 @@ const Dashboard: React.FC = () => {
         };
     }, [user]);
 
-    const handleQuickGenerateCertificate = async (course: string = 'Frontend Developer') => {
-        const cert = await issueCertificate({
-            userId: user?.id,
-            userName: user?.name,
-            courseName: course
-        });
-        setSelectedCert(cert);
-        setCertificates(getLocalCertificates());
+    const handleGoToCourseToEarnCert = (course: string = 'Frontend Developer') => {
+        navigate(`/roadmap?role=${encodeURIComponent(course.toLowerCase().replace(/[^a-z0-9]/g, '-'))}`);
     };
 
     if (isLoading || !user) {
@@ -207,11 +201,11 @@ const Dashboard: React.FC = () => {
                                             </button>
                                         ) : (
                                             <button
-                                                onClick={() => handleQuickGenerateCertificate(course.name)}
-                                                className="px-2.5 py-1.5 bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 font-bold text-[11px] rounded-lg transition-all"
-                                                title="Claim official certified credential for this course"
+                                                onClick={() => handleGoToCourseToEarnCert(course.slug || course.name)}
+                                                className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/10 text-gray-300 font-bold text-[11px] rounded-lg transition-all"
+                                                title="Start course and complete curriculum to earn certificate"
                                             >
-                                                Claim
+                                                Start Course
                                             </button>
                                         )}
                                     </div>
@@ -271,10 +265,10 @@ const Dashboard: React.FC = () => {
                         </p>
                         <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
                             <button
-                                onClick={() => handleQuickGenerateCertificate('Frontend Developer')}
+                                onClick={() => handleGoToCourseToEarnCert('frontend')}
                                 className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-black text-xs rounded-xl shadow-lg hover:scale-105 transition-all inline-flex items-center gap-2 cursor-pointer"
                             >
-                                <Award size={16} /> Claim Frontend Certificate
+                                <Award size={16} /> Complete & Submit Frontend Course
                             </button>
                             <button
                                 onClick={() => navigate('/career-path')}
